@@ -20,12 +20,14 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	  protected JobQueueJobInProgressListener jobQueueJobInProgressListener;
 	  private EagerTaskInitializationListener eagerTaskInitializationListener;
 	  private float padFraction;
+	  private JobID currFirstJob;
 	  
 	  //tasktracker <-> taskid1, taskid2 map
 	  public Map<JobID, Map<String, ArrayList<Integer>>> taskTrackerMap = new HashMap<JobID, Map<String, ArrayList<Integer>>>();
 	  
-	  //for assign task
+	  //for assign task, for there are multiple taskpairs in a worker
 	  public Map<JobID, Map<Integer, Boolean>> reduceTakenMap = new HashMap<JobID, Map<Integer, Boolean>>();
+	  public Map<JobID, Map<Integer, Boolean>> mapTakenMap = new HashMap<JobID, Map<Integer, Boolean>>();
 	  
 	  //taskid <-> tasktracker map
 	  public Map<JobID, Map<Integer, String>> taskidTTMap = new HashMap<JobID, Map<Integer, String>>();
@@ -104,6 +106,11 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 		        	  reduceTakenMap.put(job.getJobID(), reduceTaken);
 		          }
 		          
+		          if(!mapTakenMap.containsKey(job.getJobID())){
+		        	  Map<Integer, Boolean> mapTaken = new HashMap<Integer, Boolean>();
+		        	  mapTakenMap.put(job.getJobID(), mapTaken);
+		          }
+		          
 		          if(!taskidTTMap.containsKey(job.getJobID())){
 		        	  Map<Integer, String> tidTTMap = new HashMap<Integer, String>();
 		        	  taskidTTMap.put(job.getJobID(), tidTTMap);
@@ -158,25 +165,71 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	            continue;
 	          }
 
-	          Task t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
-	              taskTrackerManager.getNumberOfUniqueHosts());
-	          if (t != null) {
-	        	  if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
-		        	  ArrayList<Integer> maps = null;
-		        	  if(!taskTrackerMap.get(job.getJobID()).containsKey((taskTracker.trackerName))){		  
-		        		  maps = new ArrayList<Integer>();
-		        		  taskTrackerMap.get(job.getJobID()).put(taskTracker.trackerName, maps);
-		        	  }else{
-		        		  maps = taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName);
+	          Task t = null;
+	          if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
+	        	  if(job.getJobConf().getBoolean("mapred.iterative.firstjob", true)){
+	        		  currFirstJob = job.getJobID();
+	        		  
+	        		  t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
+	        	              taskTrackerManager.getNumberOfUniqueHosts());
+	        		  
+	        		  if (t != null) {
+			        	  ArrayList<Integer> maps = null;
+			        	  if(!taskTrackerMap.get(job.getJobID()).containsKey((taskTracker.trackerName))){		  
+			        		  maps = new ArrayList<Integer>();
+			        		  taskTrackerMap.get(job.getJobID()).put(taskTracker.trackerName, maps);
+			        	  }else{
+			        		  maps = taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName);
+			        	  }
+			        	  
+			        	  int mapid = t.getTaskID().getTaskID().getId();
+			        	  maps.add(mapid);
+			        	  reduceTakenMap.get(job.getJobID()).put(mapid, true);
+			        	  mapTakenMap.get(job.getJobID()).put(mapid, true);
+			        	  taskidTTMap.get(job.getJobID()).put(mapid, taskTracker.trackerName);
 		        	  }
-		        	  
-		        	  int mapid = t.getTaskID().getTaskID().getId();
-		        	  maps.add(mapid);
-		        	  reduceTakenMap.get(job.getJobID()).put(mapid, true);
-		        	  taskidTTMap.get(job.getJobID()).put(mapid, taskTracker.trackerName);
-	        	  }
-        	  
-	            return Collections.singletonList(t);
+	        	  
+		            return Collections.singletonList(t);
+		          
+		          }else{
+			          int maptasknum = -1;
+			          if(taskTrackerMap.get(currFirstJob) == null) continue;
+			          if(taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName) == null) continue;
+			          
+			          //first receive request from this tasktracker in this job
+			          if(taskTrackerMap.get(job.getJobID()) == null){
+			        	  for(int participate : taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName)){
+				        	  mapTakenMap.get(job.getJobID()).put(participate, true);
+				        	  reduceTakenMap.get(job.getJobID()).put(participate, true);
+			        	  }
+			          }
+			          
+			          //assign map tasks based on the correspongding task id of first job
+			          for(int participate : taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName)){
+			        	  if(mapTakenMap.get(job.getJobID()).get(participate)){
+			        		  maptasknum = participate;
+			        		  mapTakenMap.get(job.getJobID()).put(participate, false);
+			        		  break;
+			        	  }
+			          }
+			          
+			          if(maptasknum == -1){
+			        	  try {
+							throw new Exception("next map didn't match to first map");
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+			          }
+			          
+	        		  t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
+	        	              taskTrackerManager.getNumberOfUniqueHosts(), maptasknum);
+	        		  if(t != null) return Collections.singletonList(t);
+		          }
+	          }else{
+	        	  t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
+	    	              taskTrackerManager.getNumberOfUniqueHosts());
+	        	  if(t != null) return Collections.singletonList(t);
 	          }
 
 	          //
@@ -212,10 +265,12 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	            continue;
 	          }
 
-	          if(job.getJobConf().getBoolean("priter.job", false)){
+	          if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
 		          int reducetasknum = -1;
-		          if(taskTrackerMap.get(job.getJobID()) == null) continue;
-		          if(taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName) == null) continue;
+		          if(taskTrackerMap.get(currFirstJob) == null) continue;
+		          if(taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName) == null) continue;
+		          
+		          //according to the task id assignment in the same job
 		          for(int participate : taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName)){
 		        	  if(reduceTakenMap.get(job.getJobID()).get(participate)){
 		        		  reducetasknum = participate;

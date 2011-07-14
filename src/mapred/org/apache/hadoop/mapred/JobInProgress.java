@@ -1062,6 +1062,28 @@ class JobInProgress {
     return result;
   }    
 
+  public synchronized Task obtainNewMapTask(TaskTrackerStatus tts, 
+          int clusterSize, 
+          int numUniqueHosts, int targetnum
+         ) throws IOException {
+		if (status.getRunState() != JobStatus.RUNNING) {
+			LOG.info("Cannot create task split for " + profile.getJobID());
+			return null;
+		}
+				
+		int target = targetnum;
+		if (target == -1) {
+			return null;
+		}
+		
+		Task result = maps[target].getTaskToRun(tts.getTrackerName());
+		if (result != null) {
+			addRunningTaskToTIP(maps[target], result.getTaskID(), tts, true);
+		}
+		
+		return result;
+	} 
+  
   /*
    * Return task cleanup attempt if any, to run on a given tracker
    */
@@ -1276,6 +1298,28 @@ class JobInProgress {
     }
 
     return result;
+  }
+  
+  public synchronized Task obtainNewReduceTask(TaskTrackerStatus tts,
+          int clusterSize,
+          int numUniqueHosts, int targetnum
+         ) throws IOException {
+	if (status.getRunState() != JobStatus.RUNNING) {
+		LOG.info("Cannot create task split for " + profile.getJobID());
+		return null;
+	}
+	
+	int  target = targetnum;
+	if (target == -1) {
+		return null;
+	}
+	
+	Task result = reduces[target].getTaskToRun(tts.getTrackerName());
+	if (result != null) {
+		addRunningTaskToTIP(reduces[target], result.getTaskID(), tts, true);
+	}
+
+	return result;
   }
   
   // returns the (cache)level at which the nodes matches
