@@ -237,6 +237,15 @@ class JobInProgress {
     	conf.setNumMapTasks(dependentJob.numReduceTasks);
     }
     
+    if (conf.get("mapred.job.iterative", null) != null) {
+    	pipeline = JobID.forName(conf.get("mapred.job.predecessor"));
+    	JobInProgress dependentJob = jobtracker.getJob(pipeline);
+    	if (dependentJob == null) {
+    		throw new IOException("Unknown dependent job! " + pipeline);
+    	}
+    	conf.setNumMapTasks(dependentJob.numReduceTasks);
+    }
+    
     this.monitor = conf.getBoolean("mapred.job.monitor", false);
     if (this.monitor) {
     	conf.set("mapred.monitor.jol.address", jobtracker.monitorAddress());
@@ -256,6 +265,9 @@ class JobInProgress {
     
     if (conf.get("mapred.job.dependent", null) != null) {
     	dependent = JobID.forName(conf.get("mapred.job.dependent"));
+    }
+    if (conf.get("mapred.job.successor", null) != null) {
+    	dependent = JobID.forName(conf.get("mapred.job.successor"));
     }
     
     this.priority = conf.getJobPriority();

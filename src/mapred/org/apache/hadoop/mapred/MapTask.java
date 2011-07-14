@@ -227,7 +227,7 @@ public class MapTask extends Task implements InputCollector {
 	private FileSystem localfs = null;
 	private IFile.Writer cachewriter = null;
     
-    protected TaskID pipeReduceTaskId = null;
+    protected TaskID predecessorReduceTaskId = null;
 
 	private static final Log LOG = LogFactory.getLog(MapTask.class.getName());
 
@@ -252,8 +252,9 @@ public class MapTask extends Task implements InputCollector {
 		return true;
 	}
 	
-	public TaskID getIterativeReduceTask() {
-		return new TaskID(this.getJobID(), false, this.pipeReduceTaskId.id);
+	public TaskID predecessorReduceTask(JobConf job) {
+		JobID reduceJobId = JobID.forName(job.get("mapred.job.predecessor"));
+		return new TaskID(reduceJobId, false, getTaskID().getTaskID().id);
 	}
 	
 	@Override
@@ -401,8 +402,8 @@ public class MapTask extends Task implements InputCollector {
 				job.setCombinerClass(mapCombiner);
 			}
 
-			snapshotInterval = job.getInt("mapred.iterative.snapshot.interval", 10);
-			stopIteration = job.getInt("mapred.iterative.stop.iteration", 0);
+			snapshotInterval = job.getInt("mapred.iterative.snapshot.interval", Integer.MAX_VALUE);
+			stopIteration = job.getInt("mapred.iterative.stop.iteration", Integer.MAX_VALUE);
 			
 			this.outputKeyClass = job.getMapOutputKeyClass();
 			this.outputValClass = job.getMapOutputValueClass();
@@ -439,12 +440,14 @@ public class MapTask extends Task implements InputCollector {
 			sink.open();
 			LOG.info("iterate sink opened");
 			
-			while(this.pipeReduceTaskId == null){
-				this.pipeReduceTaskId = new TaskID(this.getJobID(), false, this.getTaskID().getTaskID().getId());
+			//get the predecessor job's corresponding reduce id
+			while(this.predecessorReduceTaskId == null){
+				JobID predecessorJobID = JobID.forName(conf.get("mapred.job.predecessor"));
+				this.predecessorReduceTaskId = new TaskID(predecessorJobID, false, this.getTaskID().getTaskID().getId());
 			}
-			LOG.info("local reduce task id extracted " + pipeReduceTaskId);
+			LOG.info("local reduce task id extracted " + predecessorReduceTaskId);
 
-			ReduceOutputFetcher rof = new ReduceOutputFetcher(umbilical, bufferUmbilical, sink, pipeReduceTaskId);
+			ReduceOutputFetcher rof = new ReduceOutputFetcher(umbilical, bufferUmbilical, sink, predecessorReduceTaskId);
 			rof.setDaemon(true);
 			rof.start();
 					

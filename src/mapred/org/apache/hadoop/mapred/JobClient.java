@@ -774,21 +774,58 @@ public class JobClient extends Configured implements MRConstants, Tool  {
 		  jobids.add(jobSubmitClient.getNewJobId());
 	  }
 	  
-	  for (int i = 0; i < jobs.size(); i++) {
-		  JobConf job = jobs.get(i);
-		  if (i > 0) {
-			job.set("mapred.job.pipeline", jobids.get(i - 1).toString());
-			Class keyClass = jobs.get(i - 1).getOutputKeyClass();
-			Class valClass = jobs.get(i - 1).getOutputValueClass();
-			job.setInputKeyClass(keyClass);
-			job.setInputValueClass(valClass);
+	  if(jobs.get(0).getBoolean("mapred.job.iterative", false)){
+		  for (int i = 0; i < jobs.size(); i++) {
+			  JobConf job = jobs.get(i);
+			  
+			  if (i == 0) {
+				  job.set("mapred.job.predecessor", jobids.get(jobs.size()-1).toString());
+				  job.set("mapred.job.successor", jobids.get(jobs.size()+1).toString());
+				  job.setNumMapTasks(jobs.get(jobs.size()-1).getNumReduceTasks());
+				  
+				  
+				  	Class keyClass = jobs.get(jobs.size()-1).getOutputKeyClass();
+					Class valClass = jobs.get(jobs.size()-1).getOutputValueClass();
+					job.setInputKeyClass(keyClass);
+					job.setInputValueClass(valClass);
+			  }
+			  
+			  if (i > 0) {
+				  job.set("mapred.job.predecessor", jobids.get(i - 1).toString());
+				  job.setNumMapTasks(jobs.get(i - 1).getNumReduceTasks());	
+				  
+				  if(i < jobs.size() - 1){
+					  job.set("mapred.job.successor", jobids.get(jobs.size()+1).toString());
+				  }else{
+					  job.set("mapred.job.successor", jobids.get(0).toString());
+				  }
+
+				  Class keyClass = jobs.get(i - 1).getOutputKeyClass();
+					Class valClass = jobs.get(i - 1).getOutputValueClass();
+					job.setInputKeyClass(keyClass);
+					job.setInputValueClass(valClass);
+			 
+			  }
+
+			  rjobs.add(submitJob(job, jobids.get(i)));
 		  }
-		  
-		  if (i < jobs.size() - 1) {
-			job.set("mapred.job.dependent", jobids.get(i + 1).toString());
-			job.setBoolean("mapred.reduce.pipeline", true);
+	  }else{
+		  for (int i = 0; i < jobs.size(); i++) {
+			  JobConf job = jobs.get(i);
+			  if (i > 0) {
+				job.set("mapred.job.pipeline", jobids.get(i - 1).toString());
+				Class keyClass = jobs.get(i - 1).getOutputKeyClass();
+				Class valClass = jobs.get(i - 1).getOutputValueClass();
+				job.setInputKeyClass(keyClass);
+				job.setInputValueClass(valClass);
+			  }
+			  
+			  if (i < jobs.size() - 1) {
+				job.set("mapred.job.dependent", jobids.get(i + 1).toString());
+				job.setBoolean("mapred.reduce.pipeline", true);
+			  }
+			  rjobs.add(submitJob(job, jobids.get(i)));
 		  }
-		  rjobs.add(submitJob(job, jobids.get(i)));
 	  }
 	  
 	  return rjobs;
@@ -811,6 +848,12 @@ public class JobClient extends Configured implements MRConstants, Tool  {
                                   InvalidJobConfException, IOException {
     JobID jobId = jobSubmitClient.getNewJobId();
     return submitJob(job, jobId);
+  }
+  
+  public JobID getNextJobID() throws FileNotFoundException, 
+  						InvalidJobConfException, IOException {
+	  JobID jobId = jobSubmitClient.getNewJobId();
+	  return jobId;
   }
   
   private RunningJob submitJob(JobConf job, JobID jobId) throws FileNotFoundException, 
@@ -1183,18 +1226,35 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     }
     try {
       long startTime = System.currentTimeMillis();
+      
+      JobID jobId = jc.getNextJobID();
+      if(job.getBoolean("mapred.job.iterative", false)){
+		  job.set("mapred.job.predecessor", jobId);
+		  job.set("mapred.job.successor", jobids.get(jobs.size()+1).toString());
+		  job.setNumMapTasks(jobs.get(jobs.size()-1).getNumReduceTasks());
+		  
+		  
+		  	Class keyClass = jobs.get(jobs.size()-1).getOutputKeyClass();
+			Class valClass = jobs.get(jobs.size()-1).getOutputValueClass();
+			job.setInputKeyClass(keyClass);
+			job.setInputValueClass(valClass);
+          LOG.info("iterative job");
+      }else{
+          boolean mapPipeline = job.getBoolean("mapred.map.pipeline", false);
+          boolean reducePipeline = job.getBoolean("mapred.reduce.pipeline", false);
+          boolean snapshotInput = job.getBoolean("mapred.job.input.snapshots", false);
+          float snapshotFreq = job.getFloat("mapred.snapshot.frequency", -1.0f);
+          LOG.info("Job configuration (HOP): \n" +
+        		   "     map pipeline    = " + mapPipeline + "\n" +
+        		   "     reduce pipeline = " + reducePipeline + "\n" +
+        		   "     snapshot input  = " + snapshotInput + "\n" +
+        		   "     snapshot freq   = " + snapshotFreq);
+      }
+      
       running = jc.submitJob(job);
       JobID jobId = running.getID();
       LOG.info("Running job: " + jobId);
-      boolean mapPipeline = job.getBoolean("mapred.map.pipeline", false);
-      boolean reducePipeline = job.getBoolean("mapred.reduce.pipeline", false);
-      boolean snapshotInput = job.getBoolean("mapred.job.input.snapshots", false);
-      float snapshotFreq = job.getFloat("mapred.snapshot.frequency", -1.0f);
-      LOG.info("Job configuration (HOP): \n" +
-    		   "     map pipeline    = " + mapPipeline + "\n" +
-    		   "     reduce pipeline = " + reducePipeline + "\n" +
-    		   "     snapshot input  = " + snapshotInput + "\n" +
-    		   "     snapshot freq   = " + snapshotFreq);
+
       int eventCounter = 0;
       boolean profiling = job.getProfileEnabled();
       Configuration.IntegerRanges mapRanges = job.getProfileTaskRange(true);

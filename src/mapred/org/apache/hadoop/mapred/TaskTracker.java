@@ -718,8 +718,9 @@ public class TaskTracker
 
 						  if(rjob.jobConf.getBoolean("mapred.iterative.mapsync", false)){
 				                if (rjob.getReduceFetchStatus() == null) {
-						              
-					                  f = new FetchStatus(jobId, 
+				                	MapTask pmt = (MapTask) task;
+									  TaskID reduceID = pmt.predecessorReduceTask(rjob.jobConf);
+					                  f = new FetchStatus(reduceID.getJobID(), 
 					                                      ((MapTask)task).getNumberOfInputs());
 					                  rjob.setReduceFetchStatus(f);
 				                }
@@ -727,12 +728,16 @@ public class TaskTracker
 				                if(f != null) fList.add(f);
 					                
 						  }else{
+							  /*
 							  TaskID reduceID = null;
 							  for (TaskInProgress tip2 : rjob.tasks) {
 								  if(!tip2.getTask().isMapTask()){
 									  reduceID = tip2.getTask().getTaskID().getTaskID();
 								  }
 							  }
+							  */
+							  MapTask pmt = (MapTask) task;
+							  TaskID reduceID = pmt.predecessorReduceTask(rjob.jobConf);
 
 							  if (rjob.getReduceFetchStatus() == null) {
 								  //this is a new job; we start fetching its reduce events
