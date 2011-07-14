@@ -1229,13 +1229,12 @@ public class JobClient extends Configured implements MRConstants, Tool  {
       
       JobID jobId = jc.getNextJobID();
       if(job.getBoolean("mapred.job.iterative", false)){
-		  job.set("mapred.job.predecessor", jobId);
-		  job.set("mapred.job.successor", jobids.get(jobs.size()+1).toString());
-		  job.setNumMapTasks(jobs.get(jobs.size()-1).getNumReduceTasks());
+		  job.set("mapred.job.predecessor", jobId.toString());
+		  job.set("mapred.job.successor", jobId.toString());
+		  job.setNumMapTasks(job.getNumReduceTasks());
 		  
-		  
-		  	Class keyClass = jobs.get(jobs.size()-1).getOutputKeyClass();
-			Class valClass = jobs.get(jobs.size()-1).getOutputValueClass();
+		  	Class keyClass = job.getOutputKeyClass();
+			Class valClass = job.getOutputValueClass();
 			job.setInputKeyClass(keyClass);
 			job.setInputValueClass(valClass);
           LOG.info("iterative job");
@@ -1251,8 +1250,7 @@ public class JobClient extends Configured implements MRConstants, Tool  {
         		   "     snapshot freq   = " + snapshotFreq);
       }
       
-      running = jc.submitJob(job);
-      JobID jobId = running.getID();
+      running = jc.submitJob(job, jobId);
       LOG.info("Running job: " + jobId);
 
       int eventCounter = 0;

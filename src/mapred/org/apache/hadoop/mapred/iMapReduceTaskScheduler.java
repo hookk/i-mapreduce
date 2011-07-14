@@ -93,7 +93,7 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	    synchronized (jobQueue) {
 	      for (JobInProgress job : jobQueue) {
 	        if (job.getStatus().getRunState() == JobStatus.RUNNING) {
-	        	if(job.getJobConf().getBoolean("priter.job", false)){
+	        	if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
 	  	          if(!taskTrackerMap.containsKey(job.getJobID())){
 		        	  Map<String, ArrayList<Integer>> taskmap = new HashMap<String, ArrayList<Integer>>();
 		        	  taskTrackerMap.put(job.getJobID(), taskmap);
@@ -161,7 +161,7 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	          Task t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
 	              taskTrackerManager.getNumberOfUniqueHosts());
 	          if (t != null) {
-	        	  if(job.getJobConf().getBoolean("priter.job", false)){
+	        	  if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
 		        	  ArrayList<Integer> maps = null;
 		        	  if(!taskTrackerMap.get(job.getJobID()).containsKey((taskTracker.trackerName))){		  
 		        		  maps = new ArrayList<Integer>();
