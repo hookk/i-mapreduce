@@ -407,9 +407,9 @@ public class MapTask extends Task implements InputCollector {
 			
 			this.outputKeyClass = job.getMapOutputKeyClass();
 			this.outputValClass = job.getMapOutputValueClass();
-			this.inputKeyClass = job.getOutputKeyClass();
-			this.inputValClass = job.getOutputValueClass();
-			this.dataKeyClass = job.getOutputKeyClass();
+			this.inputKeyClass = job.getInputKeyClass();
+			this.inputValClass = job.getInputValueClass();
+			this.dataKeyClass = job.getDataKeyClass();
 			this.dataValClass = job.getDataValClass();
 
 			//for sync map test
@@ -457,15 +457,21 @@ public class MapTask extends Task implements InputCollector {
 			
 			if(type.equals("one2all")){
 				joinType = StaticData.MatchType.ONE2ALL;
-			}else{
+			}else {
 				joinType = StaticData.MatchType.ONE2ONE;
 			}
 			
 			//if null no static data involved
 			if(staticDataPath != null){
 				staticData = new StaticData(conf, staticDataPath, joinType, dataKeyClass, dataValClass); 
+			}else{
+				staticData = null;
 			}
 		
+			SerializationFactory serializationFactory = new SerializationFactory(conf);
+			inputKeyDeserializer = serializationFactory.getDeserializer(inputKeyClass);
+			inputValDeserializer = serializationFactory.getDeserializer(inputValClass);
+			
 			if(stateDataPaths !=  null){
 				long mapbegin= System.currentTimeMillis();
 				LocalFileSystem localFs = FileSystem.getLocal(job);
@@ -475,51 +481,62 @@ public class MapTask extends Task implements InputCollector {
 					
 					//initial mapreduce
 					IFile.Reader<Object, Object> initReader = new IFile.Reader(job, stateIn, filelen, null, null);
-					SerializationFactory serializationFactory = new SerializationFactory(conf);
-					inputKeyDeserializer = serializationFactory.getDeserializer(inputKeyClass);
-					inputValDeserializer = serializationFactory.getDeserializer(inputValClass);
+
 					DataInputBuffer key = new DataInputBuffer();
 					DataInputBuffer value = new DataInputBuffer();
 					Object keyObject = null;
 					Object valObject = null;
 					
-					if(joinType == StaticData.MatchType.ONE2ONE){
-						while(initReader.next(key, value)){
-							inputKeyDeserializer.open(key);
-							inputValDeserializer.open(value);
-							keyObject = inputKeyDeserializer.deserialize(keyObject);
-							valObject = inputValDeserializer.deserialize(valObject);
-							
-							staticData.next();
-							mapper.map(keyObject, valObject, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
+					if(staticData != null){
+						//have static data, perform join operation before map
+						if(joinType == StaticData.MatchType.ONE2ONE){
+							while(initReader.next(key, value)){
+								inputKeyDeserializer.open(key);
+								inputValDeserializer.open(value);
+								keyObject = inputKeyDeserializer.deserialize(keyObject);
+								valObject = inputValDeserializer.deserialize(valObject);
+								
+								staticData.next();
+								mapper.map(keyObject, valObject, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
+							}
+						}else if(joinType == StaticData.MatchType.ONE2ALL){
+							while(initReader.next(key, value)){
+								inputKeyDeserializer.open(key);
+								inputValDeserializer.open(value);
+								keyObject = inputKeyDeserializer.deserialize(keyObject);
+								valObject = inputValDeserializer.deserialize(valObject);
+								mapper.map(keyObject, valObject, null, null, this.buffer, reporter);
+							}
 						}
-					}else if(joinType == StaticData.MatchType.ONE2ALL){
+					}else{
+						// no static data, parse the state data in a single pass
 						while(initReader.next(key, value)){
 							inputKeyDeserializer.open(key);
 							inputValDeserializer.open(value);
 							keyObject = inputKeyDeserializer.deserialize(keyObject);
 							valObject = inputValDeserializer.deserialize(valObject);
+	
 							mapper.map(keyObject, valObject, null, null, this.buffer, reporter);
 						}
 					}
 					
 					initReader.close();
+					
+				    maptime += System.currentTimeMillis() - mapbegin;
+					   
+				    if(staticData != null && joinType == StaticData.MatchType.ONE2ALL){
+				    	int count = 0;
+				    	while(staticData.next()){
+				    		count++;
+				    		mapper.map(null, null, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
+				    	}    	
+				    	//LOG.info("count is " + count);
+				    }
+				    
+				    this.mapper.iterate();
+					LOG.info("first round finished!");
+					this.buffer.stream(iteration++, true);
 			    }
-			        
-			    maptime += System.currentTimeMillis() - mapbegin;
-			   
-			    if(staticData != null && joinType == StaticData.MatchType.ONE2ALL){
-			    	int count = 0;
-			    	while(staticData.next()){
-			    		count++;
-			    		mapper.map(null, null, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
-			    	}    	
-			    	//LOG.info("count is " + count);
-			    }
-			    
-			    this.mapper.iterate();
-				LOG.info("first round finished!");
-				this.buffer.stream(iteration++, true);
 			}
 			
 			synchronized(this){
@@ -822,7 +839,7 @@ public class MapTask extends Task implements InputCollector {
 			};
 			cachewriter = new IFile.Writer(conf, localfs, localpath,
 					inputKeyClass, inputValClass, null, null);
-		}else{
+		}else if(joinType == StaticData.MatchType.ONE2ALL){
 			while(staticData.next()){
 				mapper.map(null, null, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
 			}

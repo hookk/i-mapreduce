@@ -26,8 +26,8 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	  public Map<JobID, Map<String, ArrayList<Integer>>> taskTrackerMap = new HashMap<JobID, Map<String, ArrayList<Integer>>>();
 	  
 	  //for assign task, for there are multiple taskpairs in a worker
-	  public Map<JobID, Map<Integer, Boolean>> reduceTakenMap = new HashMap<JobID, Map<Integer, Boolean>>();
-	  public Map<JobID, Map<Integer, Boolean>> mapTakenMap = new HashMap<JobID, Map<Integer, Boolean>>();
+	  public Map<JobID, Map<String, Map<Integer, Boolean>>> reduceTakenMap = new HashMap<JobID, Map<String, Map<Integer, Boolean>>>();
+	  public Map<JobID, Map<String, Map<Integer, Boolean>>> mapTakenMap = new HashMap<JobID, Map<String, Map<Integer, Boolean>>>();
 	  
 	  //taskid <-> tasktracker map
 	  public Map<JobID, Map<Integer, String>> taskidTTMap = new HashMap<JobID, Map<Integer, String>>();
@@ -78,6 +78,11 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 
 	    Collection<JobInProgress> jobQueue =
 	      jobQueueJobInProgressListener.getJobQueue();
+	    
+	    LOG.info("current job queue is: ");
+	    for(JobInProgress tj : jobQueue){
+	    	LOG.info(tj.getJobID());
+	    }
 
 	    //
 	    // Get map + reduce counts for the current tracker.
@@ -102,12 +107,12 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 		          }
 		          
 		          if(!reduceTakenMap.containsKey(job.getJobID())){
-		        	  Map<Integer, Boolean> reduceTaken = new HashMap<Integer, Boolean>();
+		        	  Map<String, Map<Integer, Boolean>> reduceTaken = new HashMap<String, Map<Integer, Boolean>>();
 		        	  reduceTakenMap.put(job.getJobID(), reduceTaken);
 		          }
 		          
 		          if(!mapTakenMap.containsKey(job.getJobID())){
-		        	  Map<Integer, Boolean> mapTaken = new HashMap<Integer, Boolean>();
+		        	  Map<String, Map<Integer, Boolean>> mapTaken = new HashMap<String, Map<Integer, Boolean>>();
 		        	  mapTakenMap.put(job.getJobID(), mapTaken);
 		          }
 		          
@@ -157,17 +162,20 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	    //
 	       
 	    if (numMaps < maxMapLoad) {
-
+	    	LOG.info("assigning jobs");
 	      int totalNeededMaps = 0;
 	      synchronized (jobQueue) {
 	        for (JobInProgress job : jobQueue) {
+	        	LOG.info("assign job for " + job.getJobID());
 	          if (job.getStatus().getRunState() != JobStatus.RUNNING) {
+	        	  LOG.info(job.getJobID() + " is not running");
 	            continue;
 	          }
 
 	          Task t = null;
 	          if(job.getJobConf().getBoolean("mapred.job.iterative", false)){
 	        	  if(job.getJobConf().getBoolean("mapred.iterative.firstjob", true)){
+	        		  LOG.info("assign job for the first job " + job.getJobID());
 	        		  currFirstJob = job.getJobID();
 	        		  
 	        		  t = job.obtainNewMapTask(taskTracker, numTaskTrackers,
@@ -182,33 +190,62 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 			        		  maps = taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName);
 			        	  }
 			        	  
+			        	  Map<Integer, Boolean> reduceTaken = null;
+			        	  if(!reduceTakenMap.get(job.getJobID()).containsKey(taskTracker.trackerName)){
+			        		  reduceTaken = new HashMap<Integer, Boolean>();
+			        		  reduceTakenMap.get(job.getJobID()).put(taskTracker.trackerName, reduceTaken);
+			        	  }else{
+			        		  reduceTaken = reduceTakenMap.get(job.getJobID()).get(taskTracker.trackerName);
+			        	  }
+			        	  
+			        	  Map<Integer, Boolean> mapTaken = null;
+			        	  if(!mapTakenMap.get(job.getJobID()).containsKey(taskTracker.trackerName)){
+			        		  mapTaken = new HashMap<Integer, Boolean>();
+			        		  mapTakenMap.get(job.getJobID()).put(taskTracker.trackerName,mapTaken);
+			        	  }else{
+			        		  mapTaken = mapTakenMap.get(job.getJobID()).get(taskTracker.trackerName);
+			        	  }
+			        	  
 			        	  int mapid = t.getTaskID().getTaskID().getId();
 			        	  maps.add(mapid);
-			        	  reduceTakenMap.get(job.getJobID()).put(mapid, true);
-			        	  mapTakenMap.get(job.getJobID()).put(mapid, true);
+			        	  reduceTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(mapid, true);
+			        	  mapTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(mapid, true);
 			        	  taskidTTMap.get(job.getJobID()).put(mapid, taskTracker.trackerName);
-		        	  }
-	        	  
-		            return Collections.singletonList(t);
-		          
+		        	  
+			        	  return Collections.singletonList(t);
+	        		  }
 		          }else{
+		        	  LOG.info("assign job for the following job");
 			          int maptasknum = -1;
 			          if(taskTrackerMap.get(currFirstJob) == null) continue;
 			          if(taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName) == null) continue;
 			          
 			          //first receive request from this tasktracker in this job
-			          if(taskTrackerMap.get(job.getJobID()) == null){
-			        	  for(int participate : taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName)){
-				        	  mapTakenMap.get(job.getJobID()).put(participate, true);
-				        	  reduceTakenMap.get(job.getJobID()).put(participate, true);
-			        	  }
-			          }
+
+		        	  LOG.info("fill the tasks needed to be executed");
+		        	  
+		        	  if(!mapTakenMap.get(job.getJobID()).containsKey(taskTracker.trackerName)){
+		        		  Map<Integer, Boolean> mapTaken = new HashMap<Integer, Boolean>();
+		        		  mapTakenMap.get(job.getJobID()).put(taskTracker.trackerName, mapTaken);
+		        	  }
+		        	  
+		        	  if(!reduceTakenMap.get(job.getJobID()).containsKey(taskTracker.trackerName)){
+		        		  Map<Integer, Boolean> reduceTaken = new HashMap<Integer, Boolean>();
+		        		  reduceTakenMap.get(job.getJobID()).put(taskTracker.trackerName, reduceTaken);
+		        	  }
+		        	  
+		        	  for(int participate : taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName)){
+			        	  mapTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(participate, true);
+			        	  reduceTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(participate, true);
+		        	  }
+			         
 			          
 			          //assign map tasks based on the correspongding task id of first job
-			          for(int participate : taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName)){
-			        	  if(mapTakenMap.get(job.getJobID()).get(participate)){
+			          for(int participate : taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName)){
+			        	  if(mapTakenMap.get(job.getJobID()).get(taskTracker.trackerName).get(participate)){
+			        		  LOG.info("check task id " + participate);
 			        		  maptasknum = participate;
-			        		  mapTakenMap.get(job.getJobID()).put(participate, false);
+			        		  mapTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(participate, false);
 			        		  break;
 			        	  }
 			          }
@@ -249,7 +286,7 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	        }
 	      }
 	    }else{
-	    	//LOG.warn("numMaps is " + numMaps + " and maxMapLoad is " + maxMapLoad);
+	    	LOG.info("numMaps is " + numMaps + " and maxMapLoad is " + maxMapLoad);
 	    }
 
 	    //
@@ -271,10 +308,10 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 		          if(taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName) == null) continue;
 		          
 		          //according to the task id assignment in the same job
-		          for(int participate : taskTrackerMap.get(job.getJobID()).get(taskTracker.trackerName)){
-		        	  if(reduceTakenMap.get(job.getJobID()).get(participate)){
+		          for(int participate : taskTrackerMap.get(currFirstJob).get(taskTracker.trackerName)){
+		        	  if(reduceTakenMap.get(job.getJobID()).get(taskTracker.trackerName).get(participate)){
 		        		  reducetasknum = participate;
-		        		  reduceTakenMap.get(job.getJobID()).put(participate, false);
+		        		  reduceTakenMap.get(job.getJobID()).get(taskTracker.trackerName).put(participate, false);
 		        		  break;
 		        	  }
 		          }
@@ -320,7 +357,7 @@ public class iMapReduceTaskScheduler extends TaskScheduler {
 	        }
 	      }
 	    }else{
-	    	//LOG.warn("numReduces is " + numReduces + " and maxReduceLoad is " + maxReduceLoad);
+	    	LOG.info("numReduces is " + numReduces + " and maxReduceLoad is " + maxReduceLoad);
 	    }
 	    return null;
 	  }

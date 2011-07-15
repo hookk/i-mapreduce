@@ -72,7 +72,7 @@ public class StaticData<KEY, VALUE> {
 	    	iterhandler = new One2OneIteratorHandler();
 	    }else if(inType == MatchType.ONE2ALL){
 	    	iterhandler = new One2AllIteratorHandler();
-	    }    
+	    } 
 	}
 	
 	public boolean next() throws IOException{

@@ -780,9 +780,9 @@ public class JobClient extends Configured implements MRConstants, Tool  {
 			  
 			  if (i == 0) {
 				  job.set("mapred.job.predecessor", jobids.get(jobs.size()-1).toString());
-				  job.set("mapred.job.successor", jobids.get(jobs.size()+1).toString());
+				  job.set("mapred.job.successor", jobids.get(1).toString());
+				  //job.set("mapred.iterative.successor", "none");
 				  job.setNumMapTasks(jobs.get(jobs.size()-1).getNumReduceTasks());
-				  
 				  
 				  	Class keyClass = jobs.get(jobs.size()-1).getOutputKeyClass();
 					Class valClass = jobs.get(jobs.size()-1).getOutputValueClass();

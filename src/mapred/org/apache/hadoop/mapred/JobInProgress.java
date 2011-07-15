@@ -237,9 +237,10 @@ class JobInProgress {
     	conf.setNumMapTasks(dependentJob.numReduceTasks);
     }
     
-    if (conf.get("mapred.job.iterative", null) != null) {
+    if (conf.get("mapred.iterative.succesoor", null) != null) {
     	pipeline = JobID.forName(conf.get("mapred.job.predecessor"));
-    	JobInProgress dependentJob = jobtracker.getJob(pipeline);
+    	
+		JobInProgress dependentJob = jobtracker.getJob(pipeline);
     	if (dependentJob == null) {
     		throw new IOException("Unknown dependent job! " + pipeline);
     	}
