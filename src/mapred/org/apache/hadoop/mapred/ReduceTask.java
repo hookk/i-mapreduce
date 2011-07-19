@@ -509,7 +509,7 @@ public class ReduceTask extends Task {
 	protected void iteration(JobConf job, InputCollector inputCollector,
 			BufferExchangeSink sink, TaskUmbilicalProtocol taskUmbilical,
 			BufferUmbilicalProtocol umbilical) throws IOException {
-		int window = job.getInt("mapred.iterative.reduce.window", 1000);
+		int window = job.getInt("mapred.iterative.reduce.window", -1);
 		stopIteration = job.getInt("mapred.iterative.stop.iteration", 0);
 		
 		long starttime = System.currentTimeMillis();
