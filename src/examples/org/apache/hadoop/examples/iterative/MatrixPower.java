@@ -23,9 +23,6 @@ import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import common.UniDistIntPartitioner;
-
-import util.MainDriver;
 
 public class MatrixPower extends Configured implements Tool {
 

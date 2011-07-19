@@ -1,6 +1,8 @@
 package org.apache.hadoop.examples.iterative;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -70,12 +72,67 @@ public class PageRank extends Configured implements Tool {
 	    JobClient.runJob(job);
 	    return 0;
 	}
+	
+	private void printUsage() {
+		System.out.println("pagerank [-p partitions] <inStateDir> <inStaticDir> <outDir>");
+		System.out.println("\t-p # of parittions");
+		ToolRunner.printGenericCommandUsage(System.out);
+	}
+	
 	@Override
 	public int run(String[] args) throws Exception {
-		if (args.length != 4) {
-		      System.err.println("Usage: pagerank <indir> <outdir> <subrank> <subgraph>");
-		      System.exit(2);
+		if (args.length < 3) {
+			printUsage();
+			return -1;
 		}
+		
+		List<String> other_args = new ArrayList<String>();
+		for(int i=0; i < args.length; ++i) {
+		      try {
+		          if ("-s".equals(args[i])) {
+		        	float freq = Float.parseFloat(args[++i]);
+		        	/* Jobs will perform snapshots */
+		          	wordcountJob.setFloat("mapred.snapshot.frequency", freq);
+		          	topkJob.setFloat("mapred.snapshot.frequency", freq);
+		          	topkJob.setBoolean("mapred.job.input.snapshots", true);
+
+		          	/* Wordcount will pipeline. */
+		          	wordcountJob.setBoolean("mapred.map.pipeline", true);
+		          	wordcountJob.setBoolean("mapred.reduce.pipeline", true);
+		          	/* TopK does not pipeline. */
+		          	topkJob.setBoolean("mapred.map.pipeline", true);
+		          	topkJob.setBoolean("mapred.reduce.pipeline", false);
+		        	pipelineJob = true;
+		          } else if ("-R".equals(args[i])) {
+		        	  reduceOutput = false;
+		          } else if ("-c".equals(args[i])) {
+		        	  topkJob.setBoolean("mapred.job.comparelists", true);
+		          } else if ("-x".equals(args[i])) {
+		        	  xmlmapper = true;
+		          } else if ("-p".equals(args[i])) {
+		          	wordcountJob.setBoolean("mapred.map.pipeline", true);
+		          	topkJob.setBoolean("mapred.map.pipeline", true);
+		          } else if ("-P".equals(args[i])) {
+		    		pipelineJob = true;
+		          	wordcountJob.setBoolean("mapred.reduce.pipeline", true);
+		    	  } else if ("-m".equals(args[i])) {
+		    		  wordcountJob.setNumMapTasks(Integer.parseInt(args[++i]));
+		    	  } else if ("-r".equals(args[i])) {
+		    		  wordcountJob.setNumReduceTasks(Integer.parseInt(args[++i]));
+		    	  } else {
+		    		  other_args.add(args[i]);
+		    	  }
+		      } catch (NumberFormatException except) {
+		        System.out.println("ERROR: Integer expected instead of " + args[i]);
+		        printUsage();
+		        return -1;
+		      } catch (ArrayIndexOutOfBoundsException except) {
+		        System.out.println("ERROR: Required parameter missing from " +
+		                           args[i-1]);
+		        printUsage();
+		        return -1;
+		      }
+		    }
 	    
 		input = args[0];
 	    output = args[1];

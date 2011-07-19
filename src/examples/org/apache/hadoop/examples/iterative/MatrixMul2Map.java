@@ -15,8 +15,6 @@ import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
-import util.MainDriver;
-import util.Util;
 
 public class MatrixMul2Map extends MapReduceBase implements
 		IterativeMapper<IntWritable, Text, IntWritable, Text, IntIntPairWritable, FloatWritable> {
@@ -78,7 +76,7 @@ public class MatrixMul2Map extends MapReduceBase implements
 
 	@Override
 	public void map(IntWritable arg0, Text arg1,
-			OutputCollector<power.IntIntPairWritable, FloatWritable> arg2,
+			OutputCollector<IntIntPairWritable, FloatWritable> arg2,
 			Reporter arg3) throws IOException {
 		// TODO Auto-generated method stub
 		

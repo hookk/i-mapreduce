@@ -24,8 +24,9 @@ import org.apache.hadoop.examples.iterative.GenGraph;
 import org.apache.hadoop.examples.iterative.KMeans;
 import org.apache.hadoop.examples.iterative.PageRank;
 import org.apache.hadoop.examples.iterative.PreProcess;
-import org.apache.hadoop.examples.iterative.Test;
 import org.apache.hadoop.examples.iterative.TransposeGraph;
+import org.apache.hadoop.examples.iterative.PrepareNMF;
+import org.apache.hadoop.examples.iterative.MatrixPower;
 import org.apache.hadoop.examples.terasort.TeraGen;
 import org.apache.hadoop.examples.terasort.TeraSort;
 import org.apache.hadoop.examples.terasort.TeraValidate;
@@ -78,13 +79,14 @@ public class ExampleDriver {
       pgd.addClass("teravalidate", TeraValidate.class, "Checking results of terasort");
       
       //for iterative jobs
-	pgd.addClass("gengraph", GenGraph.class, "generate power law graph");
-	pgd.addClass("preprocess", PreProcess.class, "preprocess");
-	pgd.addClass("transpose", TransposeGraph.class, "transpose graph");
-	pgd.addClass("bsearch", BSearch.class, "shortest path");
-	pgd.addClass("pagerank", PageRank.class, "pagerank");
-	pgd.addClass("kmeans", KMeans.class, "kmeans iterate");
-	  	
+      pgd.addClass("gengraph", GenGraph.class, "generate power law graph");
+      pgd.addClass("preprocess", PreProcess.class, "preprocess");
+      pgd.addClass("transpose", TransposeGraph.class, "transpose graph");
+      pgd.addClass("bsearch", BSearch.class, "shortest path");
+      pgd.addClass("pagerank", PageRank.class, "pagerank");
+      pgd.addClass("kmeans", KMeans.class, "kmeans iterate");
+      pgd.addClass("preparenmf", PrepareNMF.class, "prepare work for nmf computation");
+      pgd.addClass("matrixpower", MatrixPower.class, "compute a power of matrix");
       pgd.driver(argv);
 
       // Success

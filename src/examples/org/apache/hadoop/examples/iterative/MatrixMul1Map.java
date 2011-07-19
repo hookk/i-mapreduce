@@ -13,9 +13,6 @@ import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
-import util.MainDriver;
-import util.Util;
-
 public class MatrixMul1Map extends MapReduceBase implements
 		IterativeMapper<IntIntPairWritable, FloatWritable, NullWritable, NullWritable, IntWritable, IntFloatPairWritable> {
 

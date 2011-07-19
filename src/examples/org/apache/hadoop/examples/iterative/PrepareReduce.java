@@ -18,8 +18,6 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
-import util.MainDriver;
-import util.Util;
 
 public class PrepareReduce extends MapReduceBase implements
 		Reducer<IntWritable, IntFloatPairWritable, NullWritable, NullWritable> {
