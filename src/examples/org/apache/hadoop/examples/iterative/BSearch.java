@@ -1,6 +1,8 @@
 package org.apache.hadoop.examples.iterative;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -22,6 +24,9 @@ public class BSearch extends Configured implements Tool {
 	private String output;
 	private String subRankDir;
 	private String subGraphDir;
+	private int partitions = 0;
+	private int interval = 5;
+	private int iterations = 20;
 	
 	private int bsearch() throws IOException{
 	    JobConf job = new JobConf(getConf());
@@ -35,17 +40,13 @@ public class BSearch extends Configured implements Tool {
 	    FileOutputFormat.setOutputPath(job, new Path(output));
 	    job.setOutputFormat(TextOutputFormat.class);
 	    
-	    int ttnum = Util.getTTNum(job);
-
 	    //set for iterative process
 	    job.setBoolean("mapred.job.iterative", true);  
-	    job.setLong("mapred.iterative.reduce.window", -1);		//set -1 more accurate, ow more stable
 	    job.setBoolean("mapred.iterative.reducesync", true);
-	    //job.setBoolean("mapred.iterative.simsync", true);
 	    job.set("mapred.iterative.jointype", "one2one");
-	    job.setInt("mapred.iterative.ttnum", ttnum);
-	    job.setInt("mapred.iterative.snapshot.interval", 5);
-	    job.setInt("mapred.iterative.stop.iteration", 20); 
+	    job.setInt("mapred.iterative.ttnum", partitions);
+	    job.setInt("mapred.iterative.snapshot.interval", interval);
+	    job.setInt("mapred.iterative.stop.iteration", iterations); 
 	    
 	    job.setJarByClass(BSearch.class);
 	    job.setMapperClass(BSearchMap.class);	
@@ -58,24 +59,62 @@ public class BSearch extends Configured implements Tool {
 	    job.setOutputValueClass(Text.class);
 	    job.setPartitionerClass(UniDistIntPartitioner.class);
 
-	    job.setNumMapTasks(ttnum);
-	    job.setNumReduceTasks(ttnum);
+	    if(partitions == 0) partitions = Util.getTTNum(job);
+	    job.setNumMapTasks(partitions);
+	    job.setNumReduceTasks(partitions);
 	    
 	    JobClient.runJob(job);
 	    return 0;
 	}
+	
+	private void printUsage() {
+		System.out.println("bsearch [-p partitions] <InTemp> <inStateDir> <inStaticDir> <outDir>");
+		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations");
+		ToolRunner.printGenericCommandUsage(System.out);
+	}
+	
 	@Override
 	public int run(String[] args) throws Exception {
-		if (args.length != 4) {
-		      System.err.println("Usage: bsearch <indir> <outdir> <subrank> <subgraph>");
-		      System.exit(2);
+		if (args.length < 4) {
+			printUsage();
+			return -1;
+		}
+		
+		List<String> other_args = new ArrayList<String>();
+		for(int i=0; i < args.length; ++i) {
+		      try {
+		          if ("-p".equals(args[i])) {
+		        	partitions = Integer.parseInt(args[++i]);
+		          } else if ("-i".equals(args[i])) {
+		        	interval = Integer.parseInt(args[++i]);
+		          } else if ("-I".equals(args[i])) {
+		        	iterations = Integer.parseInt(args[++i]);
+		          } else {
+		    		  other_args.add(args[i]);
+		    	  }
+		      } catch (NumberFormatException except) {
+		        System.out.println("ERROR: Integer expected instead of " + args[i]);
+		        printUsage();
+		        return -1;
+		      } catch (ArrayIndexOutOfBoundsException except) {
+		        System.out.println("ERROR: Required parameter missing from " +
+		                           args[i-1]);
+		        printUsage();
+		        return -1;
+		      }
+		}
+		
+	    if (other_args.size() < 4) {
+		      System.out.println("ERROR: Wrong number of parameters: " +
+		                         other_args.size() + ".");
+		      printUsage(); return -1;
 		}
 	    
-		input = args[0];
-	    output = args[1];
-	    subRankDir = args[2];
-	    subGraphDir = args[3];
-    
+		input = other_args.get(0);
+	    subRankDir = other_args.get(1);
+	    subGraphDir = other_args.get(2); 
+	    output = other_args.get(3);
+	    
 	    bsearch();
 	    
 		return 0;

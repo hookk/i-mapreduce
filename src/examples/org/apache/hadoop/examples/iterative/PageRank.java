@@ -24,6 +24,9 @@ public class PageRank extends Configured implements Tool {
 	private String output;
 	private String subGraphDir;
 	private String subRankDir;
+	private int partitions = 0;
+	private int interval = 10;
+	private int iterations = 50;
 	
 	//damping factor
 	public static final double DAMPINGFAC = 0.8;
@@ -42,17 +45,13 @@ public class PageRank extends Configured implements Tool {
 	    FileOutputFormat.setOutputPath(job, new Path(output));
 	    job.setOutputFormat(TextOutputFormat.class);
 	    
-	    int ttnum = Util.getTTNum(job);
-	        
 	    //set for iterative process   
 	    job.setBoolean("mapred.job.iterative", true);  
-	    job.setLong("mapred.iterative.reduce.window", -1);		//set -1 more accurate, ow more stable
 	    job.setBoolean("mapred.iterative.reducesync", true);
-	    //job.setBoolean("mapred.iterative.mapsync", true);
 	    job.set("mapred.iterative.jointype", "one2one");
-	    job.setInt("mapred.iterative.ttnum", ttnum);
-	    job.setInt("mapred.iterative.snapshot.interval", 10);
-	    job.setInt("mapred.iterative.stop.iteration", 50);
+	    job.setInt("mapred.iterative.ttnum", partitions);
+	    job.setInt("mapred.iterative.snapshot.interval", interval);
+	    job.setInt("mapred.iterative.stop.iteration", iterations);
 	    
 	    job.setJarByClass(PageRank.class);
 	    job.setMapperClass(PageRankMap.class);	
@@ -63,25 +62,25 @@ public class PageRank extends Configured implements Tool {
 	    job.setMapOutputValueClass(DoubleWritable.class);
 	    job.setOutputKeyClass(IntWritable.class);
 	    job.setOutputValueClass(DoubleWritable.class);
-	    
 	    job.setPartitionerClass(UniDistIntPartitioner.class);
 
-	    job.setNumMapTasks(ttnum);
-	    job.setNumReduceTasks(ttnum);
+	    if(partitions == 0) partitions = Util.getTTNum(job);
+	    job.setNumMapTasks(partitions);
+	    job.setNumReduceTasks(partitions);
 	    
 	    JobClient.runJob(job);
 	    return 0;
 	}
 	
 	private void printUsage() {
-		System.out.println("pagerank [-p partitions] <inStateDir> <inStaticDir> <outDir>");
-		System.out.println("\t-p # of parittions");
+		System.out.println("pagerank [-p partitions] <InTemp> <inStateDir> <inStaticDir> <outDir>");
+		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations");
 		ToolRunner.printGenericCommandUsage(System.out);
 	}
 	
 	@Override
 	public int run(String[] args) throws Exception {
-		if (args.length < 3) {
+		if (args.length < 4) {
 			printUsage();
 			return -1;
 		}
@@ -89,37 +88,13 @@ public class PageRank extends Configured implements Tool {
 		List<String> other_args = new ArrayList<String>();
 		for(int i=0; i < args.length; ++i) {
 		      try {
-		          if ("-s".equals(args[i])) {
-		        	float freq = Float.parseFloat(args[++i]);
-		        	/* Jobs will perform snapshots */
-		          	wordcountJob.setFloat("mapred.snapshot.frequency", freq);
-		          	topkJob.setFloat("mapred.snapshot.frequency", freq);
-		          	topkJob.setBoolean("mapred.job.input.snapshots", true);
-
-		          	/* Wordcount will pipeline. */
-		          	wordcountJob.setBoolean("mapred.map.pipeline", true);
-		          	wordcountJob.setBoolean("mapred.reduce.pipeline", true);
-		          	/* TopK does not pipeline. */
-		          	topkJob.setBoolean("mapred.map.pipeline", true);
-		          	topkJob.setBoolean("mapred.reduce.pipeline", false);
-		        	pipelineJob = true;
-		          } else if ("-R".equals(args[i])) {
-		        	  reduceOutput = false;
-		          } else if ("-c".equals(args[i])) {
-		        	  topkJob.setBoolean("mapred.job.comparelists", true);
-		          } else if ("-x".equals(args[i])) {
-		        	  xmlmapper = true;
-		          } else if ("-p".equals(args[i])) {
-		          	wordcountJob.setBoolean("mapred.map.pipeline", true);
-		          	topkJob.setBoolean("mapred.map.pipeline", true);
-		          } else if ("-P".equals(args[i])) {
-		    		pipelineJob = true;
-		          	wordcountJob.setBoolean("mapred.reduce.pipeline", true);
-		    	  } else if ("-m".equals(args[i])) {
-		    		  wordcountJob.setNumMapTasks(Integer.parseInt(args[++i]));
-		    	  } else if ("-r".equals(args[i])) {
-		    		  wordcountJob.setNumReduceTasks(Integer.parseInt(args[++i]));
-		    	  } else {
+		          if ("-p".equals(args[i])) {
+		        	partitions = Integer.parseInt(args[++i]);
+		          } else if ("-i".equals(args[i])) {
+		        	interval = Integer.parseInt(args[++i]);
+		          } else if ("-I".equals(args[i])) {
+		        	iterations = Integer.parseInt(args[++i]);
+		          } else {
 		    		  other_args.add(args[i]);
 		    	  }
 		      } catch (NumberFormatException except) {
@@ -132,12 +107,18 @@ public class PageRank extends Configured implements Tool {
 		        printUsage();
 		        return -1;
 		      }
-		    }
+		}
+		
+	    if (other_args.size() < 4) {
+		      System.out.println("ERROR: Wrong number of parameters: " +
+		                         other_args.size() + ".");
+		      printUsage(); return -1;
+		}
 	    
-		input = args[0];
-	    output = args[1];
-	    subRankDir = args[2];
-	    subGraphDir = args[3];    
+		input = other_args.get(0);
+	    subRankDir = other_args.get(1);
+	    subGraphDir = other_args.get(2); 
+	    output = other_args.get(3);
     
 	    pagerank();
 	    
