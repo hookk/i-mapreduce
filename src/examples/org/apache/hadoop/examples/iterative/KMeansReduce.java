@@ -18,17 +18,13 @@ public class KMeansReduce extends MapReduceBase implements
 		IterativeReducer<IntWritable, Text, IntWritable, Text> {
 	
 	private int iteration;
-	private int ttnum;
 	private Date start;
 	private int threshold;
 	
 	@Override
 	public void configure(JobConf job){
 		iteration = 0;
-
 		start = new Date();
-		ttnum = Util.getTTNum(job);
-		
 		threshold = job.getInt(MainDriver.KMEANS_THRESHOLD, 0);
 	}
 

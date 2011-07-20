@@ -28,7 +28,7 @@ public class KMeans extends Configured implements Tool {
 	private int k;
 	private int threshold = 50;
 	private int partitions = 0;
-	private int interval = 1000;
+	private int interval = 1;
 	private int iterations = 20;
 	
 	private void iterateKMeans() throws IOException{
@@ -49,8 +49,8 @@ public class KMeans extends Configured implements Tool {
 	    job.setBoolean("mapred.iterative.mapsync", true);
 	    job.set("mapred.iterative.jointype", "one2all");
 	    job.setInt("mapred.iterative.ttnum", partitions);
-	    job.setInt("mapred.iterative.snapshot.interval", 1000);
-	    job.setInt("mapred.iterative.stop.iteration", 20); 	
+	    job.setInt("mapred.iterative.snapshot.interval", interval);
+	    job.setInt("mapred.iterative.stop.iteration", iterations); 	
 	    
 	    FileInputFormat.addInputPath(job, new Path(inDir));		//no use
 	    

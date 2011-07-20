@@ -20,7 +20,6 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 	private String subGraphsDir;
 	private String subRankDir;
 	private int taskid;
-	private boolean first = true;
 	 
 	@Override
 	public void configure(JobConf job) {
@@ -107,7 +106,6 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 
 	@Override
 	public void iterate() {
-		// TODO Auto-generated method stub
-		first = false;
+
 	}
 }

@@ -27,11 +27,23 @@ public class PageRank extends Configured implements Tool {
 	private int partitions = 0;
 	private int interval = 10;
 	private int iterations = 50;
+	private int nodes = 1000000;
 	
 	//damping factor
 	public static final double DAMPINGFAC = 0.8;
 	public static final double RETAINFAC = 0.2;
 
+	private void preprocess(String instate, String instatic, String outstate, String outstatic) throws Exception {
+		String[] args = new String[6];
+		args[0] = instate;
+		args[1] = instatic;
+		args[2] = outstate;
+		args[3] = outstatic;
+		args[4] = "DoubleWritable";
+		args[5] = String.valueOf(nodes);
+		
+		PreProcess.main(args);
+	}
 	
 	private int pagerank() throws IOException{
 	    JobConf job = new JobConf(getConf());
@@ -74,7 +86,7 @@ public class PageRank extends Configured implements Tool {
 	
 	private void printUsage() {
 		System.out.println("pagerank [-p partitions] <InTemp> <inStateDir> <inStaticDir> <outDir>");
-		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations");
+		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations\n\t-n # of nodes");
 		ToolRunner.printGenericCommandUsage(System.out);
 	}
 	
@@ -94,6 +106,8 @@ public class PageRank extends Configured implements Tool {
 		        	interval = Integer.parseInt(args[++i]);
 		          } else if ("-I".equals(args[i])) {
 		        	iterations = Integer.parseInt(args[++i]);
+		          } else if ("-n".equals(args[i])) {
+		        	nodes = Integer.parseInt(args[++i]);
 		          } else {
 		    		  other_args.add(args[i]);
 		    	  }
@@ -116,10 +130,11 @@ public class PageRank extends Configured implements Tool {
 		}
 	    
 		input = other_args.get(0);
-	    subRankDir = other_args.get(1);
-	    subGraphDir = other_args.get(2); 
+	    String instate = other_args.get(1);
+	    String instatic = other_args.get(2); 
 	    output = other_args.get(3);
     
+	    preprocess(instate, instatic, subRankDir, subGraphDir);
 	    pagerank();
 	    
 		return 0;

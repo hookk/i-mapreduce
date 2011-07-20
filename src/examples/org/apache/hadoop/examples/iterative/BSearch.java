@@ -25,7 +25,7 @@ public class BSearch extends Configured implements Tool {
 	private int partitions = 0;
 	private int interval = 5;
 	private int iterations = 20;
-	private int nodes = 1204004;
+	private int nodes = 1000000;
 	
 	private void preprocess(String instate, String instatic, String outstate, String outstatic) throws Exception {
 		String[] args = new String[6];

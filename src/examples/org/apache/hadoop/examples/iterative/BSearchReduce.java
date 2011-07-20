@@ -34,7 +34,6 @@ public class BSearchReduce extends MapReduceBase implements
 		boolean fIsShorter = false;
 		int len = -1;
 		int min_len = Integer.MAX_VALUE;
-		String links = new String();
 		
 		while(values.hasNext()){		
 			String value = values.next().toString();
@@ -61,8 +60,6 @@ public class BSearchReduce extends MapReduceBase implements
 					min_len = len;
 					fIsShorter = false;
 				}
-			}else if(indicator.equals("p")){
-				links = value;
 			}
 		}
 		
