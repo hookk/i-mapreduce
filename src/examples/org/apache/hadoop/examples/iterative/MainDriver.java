@@ -30,7 +30,11 @@ public class MainDriver {
 	public static final String KMEANS_TIME_DIR = "kmeans.time.dir";
 	public static final String KMEANS_THRESHOLD = "kmeans.threshold";
 	
-	public static final String IN_MEM = "store.in.memory";
+	//for gen graph
+	public static final String GEN_CAPACITY = "gengraph.capacity";
+	public static final String GEN_ARGUMENT = "gengraph.argument";
+	public static final String GEN_TYPE = "gengraph.type";
+	public static final String GEN_OUT = "gengraph.output";
 	
-	public static final int MACHINE_NUM = 3;
+	public static final String IN_MEM = "store.in.memory";
 }
