@@ -25,7 +25,7 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
-public class genGraphMap extends MapReduceBase implements
+public class DistributeGenDataMap extends MapReduceBase implements
 		Mapper<LongWritable, Text, IntWritable, Text> {
 
 	private int argument;

@@ -17,9 +17,8 @@ import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import Util.MainDriver;
 
-public class genGraph extends Configured implements Tool {
+public class DistributeGenData extends Configured implements Tool {
 
 	@Override
 	public int run(String[] args) throws Exception {
@@ -47,12 +46,12 @@ public class genGraph extends Configured implements Tool {
 	    FileInputFormat.addInputPath(job, new Path(args[0]));
 	    FileOutputFormat.setOutputPath(job, new Path(outpath));
 	    
-	    job.setJarByClass(genGraph.class);
+	    job.setJarByClass(DistributeGenData.class);
 	        
 	    job.setInputFormat(TextInputFormat.class);
 	    job.setOutputFormat(NullOutputFormat.class);
 	    
-	    job.setMapperClass(genGraphMap.class);
+	    job.setMapperClass(DistributeGenDataMap.class);
 	    job.setReducerClass(IdentityReducer.class);
 	    job.setMapOutputKeyClass(IntWritable.class);
 	    job.setMapOutputValueClass(Text.class);
@@ -71,7 +70,7 @@ public class genGraph extends Configured implements Tool {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		int res = ToolRunner.run(new Configuration(), new genGraph(), args);
+		int res = ToolRunner.run(new Configuration(), new DistributeGenData(), args);
 	    System.exit(res);
 	}
 
