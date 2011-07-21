@@ -51,7 +51,7 @@ public class MatrixMul1Map extends MapReduceBase implements
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		Path remotePath = new Path(this.subNDir + "/substate" + taskid);
+		Path remotePath = new Path(this.subNDir + taskid);
 		Path localPath = new Path(Common.LOCAL_STATE + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		Path[] paths = new Path[1];

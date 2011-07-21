@@ -58,7 +58,7 @@ public class PageRankMap extends MapReduceBase implements
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		Path remotePath = new Path(this.subRankDir + "/substate" + taskid);
+		Path remotePath = new Path(this.subRankDir + taskid);
 		Path localPath = new Path(Common.LOCAL_STATE);
 		fs.copyToLocalFile(remotePath, localPath);
 		Path[] paths = new Path[1];
@@ -68,7 +68,7 @@ public class PageRankMap extends MapReduceBase implements
 	
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subGraphsDir + "/substatic" + taskid);
+		Path remotePath = new Path(this.subGraphsDir + taskid);
 		Path localPath = new Path(Common.LOCAL_STATIC);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;

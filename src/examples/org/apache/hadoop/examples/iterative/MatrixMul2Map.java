@@ -89,7 +89,7 @@ public class MatrixMul2Map extends MapReduceBase implements
 
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subMDir + "/substatic" + taskid);
+		Path remotePath = new Path(this.subMDir + taskid);
 		Path localPath = new Path(Common.LOCAL_STATIC + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;

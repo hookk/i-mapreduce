@@ -7,8 +7,8 @@ public class Common {
 	//for preprocess
 	public static final String SUBSTATIC = "dir.substatic";
 	public static final String SUBSTATE = "dir.substate";
-	public static final String SUBSTATIC_DIR = "_substatic";
-	public static final String SUBSTATE_DIR = "_substate";
+	public static final String SUBSTATIC_DIR = "_substatic/substatic";
+	public static final String SUBSTATE_DIR = "_substate/substate";
 	public static final String LOCAL_STATE = "/tmp/imapreduce/statedata";
 	public static final String LOCAL_STATIC = "/tmp/imapreduce/staticdata";
 	

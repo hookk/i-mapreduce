@@ -34,7 +34,7 @@ public class PrepareReduce extends MapReduceBase implements
 		try {
 			fs = FileSystem.get(job);
 			int taskid = Util.getTaskId(job);
-			Path outPath = new Path(outDir + "/substatic" + taskid);
+			Path outPath = new Path(outDir + taskid);
 			out = fs.create(outPath);
 			writer = new IFile.Writer<IntWritable, Text>(job, out, 
 					IntWritable.class, Text.class, null, null);

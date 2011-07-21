@@ -116,7 +116,7 @@ public class KMeansMap extends MapReduceBase implements
 	public Path[] initStateData() throws IOException {
 		Path[] paths = new Path[partitions];
 		for(int i=0; i<partitions; i++){
-			Path remotePath = new Path(this.clustersDir + "/substate" + i);
+			Path remotePath = new Path(this.clustersDir + i);
 			Path localPath = new Path(Common.LOCAL_STATE + i);
 			fs.copyToLocalFile(remotePath, localPath);
 			paths[i] = localPath;
@@ -127,7 +127,7 @@ public class KMeansMap extends MapReduceBase implements
 	
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.samplesDir + "/substatic" + taskid);
+		Path remotePath = new Path(this.samplesDir + taskid);
 		Path localPath = new Path(Common.LOCAL_STATIC + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;

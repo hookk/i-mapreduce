@@ -37,7 +37,7 @@ public class StateDistributeReduce extends MapReduceBase implements
 		try {
 			fs = FileSystem.get(job);
 			int taskid = Util.getTaskId(job);
-			Path outPath = new Path(outDir + "/substate" + taskid);
+			Path outPath = new Path(outDir + taskid);
 			out = fs.create(outPath);
 			
 			if(valClass.equals("IntWritable")){

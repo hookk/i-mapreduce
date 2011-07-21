@@ -24,7 +24,7 @@ public class PreProcess extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		if (args.length != 4) {
-		      System.err.println("Usage: preprocess <in_static> <in_state> <valClass> <pages>");
+		      System.err.println("Usage: preprocess <in_state> <in_static> <valClass> <pages>");
 		      System.exit(2);
 		}
 
