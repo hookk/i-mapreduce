@@ -31,13 +31,13 @@ public class StateDistributeReduce extends MapReduceBase implements
 	
 	@Override
 	public void configure(JobConf job){
-		String outDir = job.get(MainDriver.SUBRANK_DIR);
-		valClass = job.get(MainDriver.VALUE_CLASS);
+		String outDir = job.get(Common.SUBSTATE);
+		valClass = job.get(Common.VALUE_CLASS);
 		FileSystem fs;
 		try {
 			fs = FileSystem.get(job);
 			int taskid = Util.getTaskId(job);
-			Path outPath = new Path(outDir + "/subrank" + taskid);
+			Path outPath = new Path(outDir + "/substate" + taskid);
 			out = fs.create(outPath);
 			
 			if(valClass.equals("IntWritable")){

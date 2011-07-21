@@ -25,12 +25,12 @@ public class StaticDistributeReduce extends MapReduceBase implements
 	
 	@Override
 	public void configure(JobConf job){
-		String outDir = job.get(MainDriver.SUBGRAPH_DIR);
+		String outDir = job.get(Common.SUBSTATIC);
 		FileSystem fs;
 		try {
 			fs = FileSystem.get(job);
 			int taskid = Util.getTaskId(job);
-			Path outPath = new Path(outDir + "/subgraph" + taskid);
+			Path outPath = new Path(outDir + "/substatic" + taskid);
 			out = fs.create(outPath);
 			writer = new IFile.Writer<IntWritable, Text>(job, out, 
 					IntWritable.class, Text.class, null, null);

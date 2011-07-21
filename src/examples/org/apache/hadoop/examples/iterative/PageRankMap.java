@@ -33,8 +33,8 @@ public class PageRankMap extends MapReduceBase implements
 			e.printStackTrace();
 		}
 
-		subRankDir = job.get(MainDriver.SUBRANK_DIR);
-		subGraphsDir = job.get(MainDriver.SUBGRAPH_DIR);
+		subRankDir = job.get(Common.SUBSTATE);
+		subGraphsDir = job.get(Common.SUBSTATIC);
 		taskid = Util.getTaskId(conf);
 	}
 	
@@ -52,23 +52,16 @@ public class PageRankMap extends MapReduceBase implements
 		String[] links = linkstring.split(" ");	
 		double delta = rank * PageRank.DAMPINGFAC / links.length;
 		
-		String temp = "";
 		for(String link : links){
-			//int linkTo = Integer.parseInt(link);
+			if(link.equals("")) continue;
 			output.collect(new IntWritable(Integer.parseInt(link)), new DoubleWritable(delta));
-			//System.out.println("output: " + link + " : " + delta);
-			temp = link;
 		}	
-		
-		for(int i=0; i<6; i++){
-			output.collect(new IntWritable(Integer.parseInt(temp)), new DoubleWritable(-1));
-		}
 	}
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		Path remotePath = new Path(this.subRankDir + "/subrank" + taskid);
-		Path localPath = new Path("/tmp/iterativehadoop/statedata");
+		Path remotePath = new Path(this.subRankDir + "/substate" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATE);
 		fs.copyToLocalFile(remotePath, localPath);
 		Path[] paths = new Path[1];
 		paths[0] = localPath;
@@ -77,8 +70,8 @@ public class PageRankMap extends MapReduceBase implements
 	
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subGraphsDir + "/subgraph" + taskid);
-		Path localPath = new Path("/tmp/iterativehadoop/staticdata");
+		Path remotePath = new Path(this.subGraphsDir + "/substatic" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATIC);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;
 	}
@@ -87,15 +80,11 @@ public class PageRankMap extends MapReduceBase implements
 	public void map(IntWritable arg0, DoubleWritable arg1,
 			OutputCollector<IntWritable, DoubleWritable> arg2, Reporter arg3)
 			throws IOException {
-		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void iterate() {
-		// TODO Auto-generated method stub
-		
+
 	}
-
-
 }

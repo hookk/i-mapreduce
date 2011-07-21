@@ -23,24 +23,22 @@ public class PreProcess extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		if (args.length != 6) {
-		      System.err.println("Usage: preprocess <in_state> <in_static> <out_state> <out_static> <valClass> <pages>");
+		if (args.length != 4) {
+		      System.err.println("Usage: preprocess <in_static> <in_state> <valClass> <pages>");
 		      System.exit(2);
 		}
 
 		String inState = args[0];
 		String inStatic = args[1];
-		String outState = args[2];
-		String outStatic = args[3];
-		String valClass = args[4];
-		int totalpages = Integer.parseInt(args[5]);
+		String valClass = args[2];
+		int totalpages = Integer.parseInt(args[3]);
 		
 		//distribute graph job
 	    JobConf job = new JobConf(getConf());
 	    String jobname = "distribute state data";
 	    job.setJobName(jobname);
 	    
-	    job.set(MainDriver.SUBRANK_DIR, outState);
+	    job.set(Common.SUBSTATE, Common.SUBSTATE_DIR);
 	    job.setInputFormat(KeyValueTextInputFormat.class);
 	    job.setOutputFormat(NullOutputFormat.class);
 	    TextInputFormat.addInputPath(job, new Path(inState));
@@ -59,7 +57,7 @@ public class PreProcess extends Configured implements Tool {
 	    ClusterStatus status = jobclient.getClusterStatus();
 	    int ttnum = status.getTaskTrackers();
 	    job.setInt("mapred.iterative.ttnum", ttnum);
-	    job.set(MainDriver.VALUE_CLASS, valClass);
+	    job.set(Common.VALUE_CLASS, valClass);
 	   
 	    job.setNumReduceTasks(ttnum);
 	    
@@ -71,8 +69,8 @@ public class PreProcess extends Configured implements Tool {
 	    String jobname2 = "distribute static data";
 	    job2.setJobName(jobname2);
 	    
-	    job2.setInt(MainDriver.PG_TOTAL_PAGES, totalpages);
-	    job2.set(MainDriver.SUBGRAPH_DIR, outStatic);
+	    job2.setInt(Common.TOTAL_ENTRIES, totalpages);
+	    job2.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 	    job2.setInputFormat(KeyValueTextInputFormat.class);
 	    job2.setOutputFormat(NullOutputFormat.class);
 	    TextInputFormat.addInputPath(job2, new Path(inStatic));
