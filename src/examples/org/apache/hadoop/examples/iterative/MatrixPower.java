@@ -109,7 +109,7 @@ public class MatrixPower extends Configured implements Tool {
 	    
 		/** phase 1 **/
 	    FileInputFormat.addInputPath(job1, new Path(inN));
-	    job1.set(MainDriver.SUBRANK_DIR, inN);
+	    job1.set(Common.SUBSTATE, inN);
 	    FileOutputFormat.setOutputPath(job1, tempDir);
 
 	    job1.setOutputFormat(SequenceFileOutputFormat.class);
@@ -131,7 +131,7 @@ public class MatrixPower extends Configured implements Tool {
 		job2.setInputFormat(SequenceFileInputFormat.class);
 		FileOutputFormat.setOutputPath(job2, new Path(out));
 
-	    job2.set(MainDriver.SUBGRAPH_DIR, inM);
+	    job2.set(Common.SUBSTATIC, inM);
 
 	    job2.setMapperClass(MatrixMul2Map.class);
 	    job2.setReducerClass(MatrixMul2Reduce.class);

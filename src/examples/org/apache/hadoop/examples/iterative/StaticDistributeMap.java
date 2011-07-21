@@ -26,7 +26,7 @@ public class StaticDistributeMap extends MapReduceBase implements
 	
 	@Override
 	public void configure(JobConf job){
-		totalPages = job.getInt(MainDriver.PG_TOTAL_PAGES, -1);
+		totalPages = job.getInt(Common.TOTAL_ENTRIES, -1);
 		ttnum = Util.getTTNum(job);
 		taskid = Util.getTaskId(job);
 	}

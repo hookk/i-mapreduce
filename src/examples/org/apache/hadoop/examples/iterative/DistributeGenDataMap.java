@@ -57,12 +57,12 @@ public class DistributeGenDataMap extends MapReduceBase implements
 	
 	@Override
 	public void configure(JobConf job){
-		argument = job.getInt(MainDriver.GEN_ARGUMENT, 0);
-		capacity = job.getInt(MainDriver.GEN_CAPACITY, 0);
+		argument = job.getInt(Common.GEN_ARGUMENT, 0);
+		capacity = job.getInt(Common.GEN_CAPACITY, 0);
 		initial = (double)capacity / argument;
 		subcapacity = capacity / Util.getTTNum(job);
-		type = job.get(MainDriver.GEN_TYPE);
-		String outdir = job.get(MainDriver.GEN_OUT);
+		type = job.get(Common.GEN_TYPE);
+		String outdir = job.get(Common.GEN_OUT);
 		try {
 			FileSystem fs = FileSystem.get(job);
 			

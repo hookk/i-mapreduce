@@ -38,10 +38,10 @@ public class DistributeGenData extends Configured implements Tool {
 	    JobConf job = new JobConf(getConf());
 	    job.setJobName("gengraph " + capacity + ":" + argument);    
 	    
-	    job.setInt(MainDriver.GEN_CAPACITY, capacity);
-	    job.setInt(MainDriver.GEN_ARGUMENT, argument);
-	    job.set(MainDriver.GEN_TYPE, type);
-	    job.set(MainDriver.GEN_OUT, outpath);
+	    job.setInt(Common.GEN_CAPACITY, capacity);
+	    job.setInt(Common.GEN_ARGUMENT, argument);
+	    job.set(Common.GEN_TYPE, type);
+	    job.set(Common.GEN_OUT, outpath);
 	    
 	    FileInputFormat.addInputPath(job, new Path(args[0]));
 	    FileOutputFormat.setOutputPath(job, new Path(outpath));

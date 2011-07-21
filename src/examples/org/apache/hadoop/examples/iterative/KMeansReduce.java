@@ -25,7 +25,7 @@ public class KMeansReduce extends MapReduceBase implements
 	public void configure(JobConf job){
 		iteration = 0;
 		start = new Date();
-		threshold = job.getInt(MainDriver.KMEANS_THRESHOLD, 0);
+		threshold = job.getInt(KMeans.KMEANS_THRESHOLD, 0);
 	}
 
 	@Override

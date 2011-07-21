@@ -25,13 +25,6 @@ public class Common {
 	//for pagerank
 	public static final String PG_TERM_THRESHOLD = "pagerank.termination.threshold";
 	
-	//for kmeans
-	public static final String KMEANS_INITCENTERS_DIR = "kmeans.initcenters.dir";
-	public static final String KMEANS_CLUSTER_PATH = "kmeans.cluster.path";
-	public static final String KMEANS_CLUSTER_K = "kmeans.cluster.k";
-	public static final String KMEANS_DATA_DIR = "kmeans.data.dir";
-	public static final String KMEANS_TIME_DIR = "kmeans.time.dir";
-	public static final String KMEANS_THRESHOLD = "kmeans.threshold";
 	
 	//for gen graph
 	public static final String GEN_CAPACITY = "gengraph.capacity";

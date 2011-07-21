@@ -19,7 +19,7 @@ public class MatrixMul1Map extends MapReduceBase implements
 	private int count = 0;
 	private JobConf conf;
 	private FileSystem fs;
-	private String subRankDir;
+	private String subNDir;
 	private int taskid;
 	private int iteration;
 	
@@ -33,7 +33,7 @@ public class MatrixMul1Map extends MapReduceBase implements
 			e.printStackTrace();
 		}
 
-		subRankDir = job.get(MainDriver.SUBRANK_DIR);
+		subNDir = job.get(Common.SUBSTATE);
 
 		taskid = Util.getTaskId(conf);
 	}
@@ -51,8 +51,8 @@ public class MatrixMul1Map extends MapReduceBase implements
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		Path remotePath = new Path(this.subRankDir + "/subrank" + taskid);
-		Path localPath = new Path("/tmp/imapreduce/statedata");
+		Path remotePath = new Path(this.subNDir + "/substate" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATE + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		Path[] paths = new Path[1];
 		paths[0] = localPath;

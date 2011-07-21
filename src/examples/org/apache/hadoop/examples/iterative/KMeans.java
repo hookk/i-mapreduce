@@ -20,28 +20,41 @@ import org.apache.hadoop.util.ToolRunner;
 public class KMeans extends Configured implements Tool {
 
 	public static boolean COMBINE = false;
+	public static final String KMEANS_INITCENTERS_DIR = "kmeans.initcenters.dir";
+	public static final String KMEANS_CLUSTER_PATH = "kmeans.cluster.path";
+	public static final String KMEANS_CLUSTER_K = "kmeans.cluster.k";
+	public static final String KMEANS_DATA_DIR = "kmeans.data.dir";
+	public static final String KMEANS_TIME_DIR = "kmeans.time.dir";
+	public static final String KMEANS_THRESHOLD = "kmeans.threshold";
 	
-	private String inDir;
-	private String outDir;
-	private String subRankDir;
-	private String subGraphDir;
 	private int k;
 	private int threshold = 50;
 	private int partitions = 0;
 	private int interval = 1;
 	private int iterations = 20;
 	
-	private void iterateKMeans() throws IOException{
+	private void preprocess(String instate, String instatic) throws Exception {
+		String[] args = new String[4];
+		args[0] = instate;
+		args[1] = instatic;
+		args[2] = "Text";
+		args[3] = String.valueOf(0);
+		
+		PreProcess.main(args);
+	}
+	
+	private void iterateKMeans(String input, String output) throws IOException{
 
 	    JobConf job = new JobConf(getConf());
 	    String jobname = "kmeans";
 	    job.setJobName(jobname);    
 	    
-	    job.set(MainDriver.KMEANS_CLUSTER_PATH, outDir);
-	    job.setInt(MainDriver.KMEANS_CLUSTER_K, k);
-	    job.set(MainDriver.SUBRANK_DIR, subRankDir);
-	    job.set(MainDriver.SUBGRAPH_DIR, subGraphDir);
-	    job.setInt(MainDriver.KMEANS_THRESHOLD, threshold);
+	    job.set(KMEANS_CLUSTER_PATH, output);
+	    job.setInt(KMEANS_CLUSTER_K, k);
+	    job.setInt(KMEANS_THRESHOLD, threshold);
+	    
+	    job.set(Common.SUBSTATE, Common.SUBSTATE_DIR);
+	    job.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 	            
 	    //set for iterative process
 	    job.setBoolean("mapred.job.iterative", true);  
@@ -52,7 +65,7 @@ public class KMeans extends Configured implements Tool {
 	    job.setInt("mapred.iterative.snapshot.interval", interval);
 	    job.setInt("mapred.iterative.stop.iteration", iterations); 	
 	    
-	    FileInputFormat.addInputPath(job, new Path(inDir));		//no use
+	    FileInputFormat.addInputPath(job, new Path(input));		//no use
 	    
 	    job.setJarByClass(KMeans.class);
 	    job.setOutputFormat(TextOutputFormat.class);
@@ -116,13 +129,14 @@ public class KMeans extends Configured implements Tool {
 		      printUsage(); return -1;
 		}
 		
-	    inDir = other_args.get(0);
-	    subRankDir = other_args.get(1);
-	    subGraphDir = other_args.get(2); 
-	    outDir = other_args.get(3);
+	    String input = other_args.get(0);
+	    String instate = other_args.get(1);
+	    String instatic = other_args.get(2); 
+	    String output = other_args.get(3);
 		k = Integer.parseInt(args[4]);
 	
-	    iterateKMeans();
+		preprocess(instate, instatic);
+	    iterateKMeans(input, output);
 		   		
 	    return 0;
 	}

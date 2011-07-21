@@ -22,15 +22,14 @@ import org.apache.hadoop.mapred.Reporter;
 public class KMeansMap extends MapReduceBase implements
 		IterativeMapper<IntWritable, Text, IntWritable, Text, IntWritable, Text> {
 
-
-	private JobConf conf;
 	private FileSystem fs;
 	private String clusterDir;
 	private int iteration;
 	private BufferedWriter clusterWriter;
-	private String subGraphDir;
-	private String subRankDir;
+	private String samplesDir;
+	private String clustersDir;
 	private int taskid;
+	private int partitions;
 	private TreeMap<Integer, LastFMUser> outCenters = new TreeMap<Integer, LastFMUser>();
 	private ArrayList<LastFMUser> centers = new ArrayList<LastFMUser>();
 	private int k = 0;
@@ -40,16 +39,15 @@ public class KMeansMap extends MapReduceBase implements
 	
 	@Override
 	public void configure(JobConf job){
-		clusterDir = job.get(MainDriver.KMEANS_CLUSTER_PATH);
-		int ttnum = Util.getTTNum(job);
-		threshold = job.getInt(MainDriver.KMEANS_THRESHOLD, 0) / (ttnum);
+		clusterDir = job.get(KMeans.KMEANS_CLUSTER_PATH);
+		partitions = Util.getTTNum(job);
+		threshold = job.getInt(KMeans.KMEANS_THRESHOLD, 0) / (partitions);
 		iteration = 0;
-		conf = job;
+		taskid = Util.getTaskId(job);
 		
 		try {
 			fs = FileSystem.get(job);
-			//localfs = FileSystem.getLocal(job);
-			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + Util.getTaskId(conf));
+			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + taskid);
 			if(fs.exists(clusterPath)) fs.delete(clusterPath, true);
 			FSDataOutputStream clusterOut = fs.create(clusterPath);
 			clusterWriter = new BufferedWriter(new OutputStreamWriter(clusterOut));
@@ -59,11 +57,9 @@ public class KMeansMap extends MapReduceBase implements
 			e.printStackTrace();
 		}
 
-		k = job.getInt(MainDriver.KMEANS_CLUSTER_K, 0);
-		subRankDir = job.get(MainDriver.SUBRANK_DIR);
-		subGraphDir = job.get(MainDriver.SUBGRAPH_DIR);
-		
-		taskid = Util.getTaskId(job);
+		k = job.getInt(KMeans.KMEANS_CLUSTER_K, 0);
+		clustersDir = job.get(Common.SUBSTATE);
+		samplesDir = job.get(Common.SUBSTATIC);
 	}
 	
 	@Override
@@ -77,7 +73,6 @@ public class KMeansMap extends MapReduceBase implements
 		//output key: cluster id  (whose mean has the nearest measure distance)
 		//output value: user-id data
 		
-
 		if(datakey == null){	
 			if(centers.size() == k) centers.clear();
 			
@@ -115,20 +110,14 @@ public class KMeansMap extends MapReduceBase implements
 		}
 		
 		clusterWriter.write(String.valueOf(maxMean.userID) + "\t" + curr.userID + "\n");
-		/*
-		if(maxDist > -1) {		
-			output.collect(new IntWritable(maxMean.userID), new Text(curr.toString()));
-		}
-		*/
 	}
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		int num = Util.getTTNum(conf);
-		Path[] paths = new Path[num];
-		for(int i=0; i<num; i++){
-			Path remotePath = new Path(this.subRankDir + "/subrank" + i);
-			Path localPath = new Path("/tmp/iterativehadoop/statedata" + i);
+		Path[] paths = new Path[partitions];
+		for(int i=0; i<partitions; i++){
+			Path remotePath = new Path(this.clustersDir + "/substate" + i);
+			Path localPath = new Path(Common.LOCAL_STATE + i);
 			fs.copyToLocalFile(remotePath, localPath);
 			paths[i] = localPath;
 		}
@@ -138,8 +127,8 @@ public class KMeansMap extends MapReduceBase implements
 	
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subGraphDir + "/subgraph" + taskid);
-		Path localPath = new Path("/tmp/iterativehadoop/staticdata");
+		Path remotePath = new Path(this.samplesDir + "/substatic" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATIC + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;
 	}
@@ -159,7 +148,7 @@ public class KMeansMap extends MapReduceBase implements
 		
 		try {
 			this.clusterWriter.close();
-			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + Util.getTaskId(conf));
+			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + taskid);
 			if(fs.exists(clusterPath)) fs.delete(clusterPath, true);
 			FSDataOutputStream clusterOut = fs.create(clusterPath);
 			clusterWriter = new BufferedWriter(new OutputStreamWriter(clusterOut));
@@ -181,9 +170,9 @@ public class KMeansMap extends MapReduceBase implements
 			outCenters.clear();
 		}else{
 			try {
-				outCollector.collect(new IntWritable(0), new Text("0,0,0"));
-				outCollector.collect(new IntWritable(1), new Text("0,0,0"));
-				outCollector.collect(new IntWritable(2), new Text("0,0,0"));
+				for(int i=0; i<partitions; i++){
+					outCollector.collect(new IntWritable(i), new Text("0,0,0"));
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

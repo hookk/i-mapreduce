@@ -15,7 +15,6 @@ import org.apache.hadoop.mapred.Reporter;
 //input <node, shortest length and point to list>
 //output <node, shortest length>
 public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWritable, Text, IntWritable, Text, IntWritable, Text> {
-	private JobConf conf;
 	private FileSystem fs;
 	private String subGraphsDir;
 	private String subRankDir;
@@ -23,7 +22,6 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 	 
 	@Override
 	public void configure(JobConf job) {
-		conf = job;
 		try {
 			fs = FileSystem.get(job);
 		} catch (IOException e) {
@@ -31,9 +29,9 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 			e.printStackTrace();
 		}
 
-		subRankDir = job.get(MainDriver.SUBRANK_DIR);
-		subGraphsDir = job.get(MainDriver.SUBGRAPH_DIR);
-		taskid = Util.getTaskId(conf);
+		subRankDir = job.get(Common.SUBSTATE);
+		subGraphsDir = job.get(Common.SUBSTATIC);
+		taskid = Util.getTaskId(job);
 	}
 	
 	//format node	f:len
@@ -64,8 +62,6 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 				
 				String f = "f:" + String.valueOf(base_len+length);
 				output.collect(new IntWritable(node2), new Text(f));
-				
-				//System.out.println(node2 + " : " + f);
 			}
 			
 			String v = "v:" + String.valueOf(base_len);
@@ -73,15 +69,12 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 		}else{
 			output.collect(new IntWritable(nnode), value);
 		}
-		
-		//for experiment
-		//output.collect(new IntWritable(nnode), new Text("p:"+dataval.toString()));
 	}
 
 	@Override
 	public Path[] initStateData() throws IOException {
-		Path remotePath = new Path(this.subRankDir + "/subrank" + taskid);
-		Path localPath = new Path("/tmp/iterativehadoop/statedata");
+		Path remotePath = new Path(this.subRankDir + "/substate" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATE + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		Path[] paths = new Path[1];
 		paths[0] = localPath;
@@ -90,8 +83,8 @@ public class BSearchMap extends MapReduceBase implements IterativeMapper<IntWrit
 	
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subGraphsDir + "/subgraph" + taskid);
-		Path localPath = new Path("/tmp/iterativehadoop/staticdata");
+		Path remotePath = new Path(this.subGraphsDir + "/substatic" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATIC + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;
 	}

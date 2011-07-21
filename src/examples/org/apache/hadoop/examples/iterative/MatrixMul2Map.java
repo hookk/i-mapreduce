@@ -22,7 +22,7 @@ public class MatrixMul2Map extends MapReduceBase implements
 	private int count = 0;
 	private JobConf conf;
 	private FileSystem fs;
-	private String subGraphsDir;
+	private String subMDir;
 	private int taskid;
 	 
 	@Override
@@ -35,7 +35,7 @@ public class MatrixMul2Map extends MapReduceBase implements
 			e.printStackTrace();
 		}
 
-		subGraphsDir = job.get(MainDriver.SUBGRAPH_DIR);
+		subMDir = job.get(Common.SUBSTATIC);
 		taskid = Util.getTaskId(conf);
 	}
 	
@@ -89,8 +89,8 @@ public class MatrixMul2Map extends MapReduceBase implements
 
 	@Override
 	public Path initStaticData() throws IOException {
-		Path remotePath = new Path(this.subGraphsDir + "/subgraph" + taskid);
-		Path localPath = new Path("/tmp/imapreduce/staticdata");
+		Path remotePath = new Path(this.subMDir + "/substatic" + taskid);
+		Path localPath = new Path(Common.LOCAL_STATIC + taskid);
 		fs.copyToLocalFile(remotePath, localPath);
 		return localPath;
 	}

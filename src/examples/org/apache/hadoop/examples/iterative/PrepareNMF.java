@@ -35,7 +35,7 @@ public class PrepareNMF extends Configured implements Tool {
 		JobConf job1 = new JobConf(getConf());
 	    FileInputFormat.addInputPath(job1, new Path(inM));
 	    FileOutputFormat.setOutputPath(job1, new Path(out));
-	    job1.set(MainDriver.SUBGRAPH_DIR, out);
+	    job1.set(Common.SUBSTATIC, out);
 	     
 	    job1.setInputFormat(KeyValueTextInputFormat.class);
 	    job1.setOutputFormat(NullOutputFormat.class);

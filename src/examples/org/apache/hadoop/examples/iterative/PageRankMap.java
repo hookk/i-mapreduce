@@ -17,7 +17,6 @@ import org.apache.hadoop.mapred.Reporter;
 public class PageRankMap extends MapReduceBase implements
 		IterativeMapper<IntWritable, DoubleWritable, IntWritable, Text, IntWritable, DoubleWritable> {
 
-	private JobConf conf;
 	private FileSystem fs;
 	private String subGraphsDir;
 	private String subRankDir;
@@ -25,7 +24,6 @@ public class PageRankMap extends MapReduceBase implements
 	 
 	@Override
 	public void configure(JobConf job) {
-		conf = job;
 		try {
 			fs = FileSystem.get(job);
 		} catch (IOException e) {
@@ -35,7 +33,7 @@ public class PageRankMap extends MapReduceBase implements
 
 		subRankDir = job.get(Common.SUBSTATE);
 		subGraphsDir = job.get(Common.SUBSTATIC);
-		taskid = Util.getTaskId(conf);
+		taskid = Util.getTaskId(job);
 	}
 	
 	@Override

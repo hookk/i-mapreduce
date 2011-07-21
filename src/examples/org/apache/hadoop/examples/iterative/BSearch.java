@@ -18,34 +18,28 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class BSearch extends Configured implements Tool {
-	private String input;
-	private String output;
-	private String subRankDir;
-	private String subGraphDir;
 	private int partitions = 0;
 	private int interval = 5;
 	private int iterations = 20;
 	private int nodes = 1000000;
 	
-	private void preprocess(String instate, String instatic, String outstate, String outstatic) throws Exception {
-		String[] args = new String[6];
+	private void preprocess(String instate, String instatic) throws Exception {
+		String[] args = new String[4];
 		args[0] = instate;
 		args[1] = instatic;
-		args[2] = outstate;
-		args[3] = outstatic;
-		args[4] = "Text";
-		args[5] = String.valueOf(nodes);
+		args[2] = "Text";
+		args[3] = String.valueOf(nodes);
 		
 		PreProcess.main(args);
 	}
 	
-	private int bsearch() throws IOException{
+	private int bsearch(String input, String output) throws IOException{
 	    JobConf job = new JobConf(getConf());
 	    String jobname = "shortest path";
 	    job.setJobName(jobname);
        
-	    job.set(MainDriver.SUBRANK_DIR, subRankDir);
-	    job.set(MainDriver.SUBGRAPH_DIR, subGraphDir);
+	    job.set(Common.SUBSTATE, Common.SUBSTATE_DIR);
+	    job.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 	    
 	    FileInputFormat.addInputPath(job, new Path(input));
 	    FileOutputFormat.setOutputPath(job, new Path(output));
@@ -80,7 +74,10 @@ public class BSearch extends Configured implements Tool {
 	
 	private void printUsage() {
 		System.out.println("bsearch [-p partitions] <InTemp> <inStateDir> <inStaticDir> <outDir>");
-		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations\n\t-n # of nodes");
+		System.out.println(	"\t-p # of parittions\n" +
+							"\t-i snapshot interval\n" +
+							"\t-I # of iterations\n" +
+							"\t-n # of nodes");
 		ToolRunner.printGenericCommandUsage(System.out);
 	}
 	
@@ -123,13 +120,13 @@ public class BSearch extends Configured implements Tool {
 		      printUsage(); return -1;
 		}
 	    
-		input = other_args.get(0);
+		String input = other_args.get(0);
 	    String instate = other_args.get(1);
 	    String instatic = other_args.get(2); 
-	    output = other_args.get(3);
+	    String output = other_args.get(3);
 	    
-	    preprocess(instate, instatic, subRankDir, subGraphDir);
-	    bsearch();
+	    preprocess(instate, instatic);
+	    bsearch(input, output);
 	    
 		return 0;
 	}
