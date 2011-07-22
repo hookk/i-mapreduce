@@ -88,7 +88,7 @@ public class ExampleDriver {
       pgd.addClass("kmeans", KMeans.class, "kmeans iterate");
       pgd.addClass("preparenmf", PrepareNMF.class, "prepare work for nmf computation");
       pgd.addClass("matrixpower", MatrixPower.class, "compute a power of matrix");
-      pgd.addClass("disgen", DistributeGenData.class, "generate data set distributedly");
+      pgd.addClass("disgendata", DistributeGenData.class, "generate data set distributedly");
       pgd.driver(argv);
 
       // Success

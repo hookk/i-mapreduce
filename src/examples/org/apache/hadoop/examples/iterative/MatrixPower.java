@@ -89,11 +89,13 @@ public class MatrixPower extends Configured implements Tool {
 				new Path("temp-"+
 						Integer.toString(new Random().nextInt(Integer.MAX_VALUE)));
 		
+	    if(partitions == 0) partitions = Util.getTTNum(job1);
+	    
 	    //set for iterative process   
 	    job1.setBoolean("mapred.job.iterative", true);  
 	    job1.setBoolean("mapred.iterative.reducesync", true);
 	    job1.set("mapred.iterative.jointype", "one2one");
-	    job1.setInt("mapred.iterative.ttnum", partitions);
+	    job1.setInt("mapred.iterative.partitions", partitions);
 	    job1.setInt("mapred.iterative.snapshot.interval", interval);
 	    job1.setInt("mapred.iterative.stop.iteration", power);
 	    job1.set("mapred.iterative.successor", job2.getJobName());
@@ -102,7 +104,7 @@ public class MatrixPower extends Configured implements Tool {
 	    job2.setBoolean("mapred.job.iterative", true);  
 	    job2.setBoolean("mapred.iterative.reducesync", true);
 	    job2.set("mapred.iterative.jointype", "one2one");
-	    job2.setInt("mapred.iterative.ttnum", partitions);
+	    job2.setInt("mapred.iterative.partitions", partitions);
 	    job2.setInt("mapred.iterative.stop.iteration", power);
 	    job2.set("mapred.iterative.successor", job1.getJobName());
 	    job2.setBoolean("mapred.iterative.firstjob", false);
@@ -122,7 +124,6 @@ public class MatrixPower extends Configured implements Tool {
 	    job1.setOutputValueClass(Text.class);
 	    job1.setPartitionerClass(UniDistIntPartitioner.class);
 	    
-	    if(partitions == 0) partitions = Util.getTTNum(job1);
 	    job1.setNumMapTasks(partitions);
 	    job1.setNumReduceTasks(partitions);
 
@@ -141,8 +142,7 @@ public class MatrixPower extends Configured implements Tool {
 	    job2.setMapOutputValueClass(FloatWritable.class);
 	    job2.setOutputKeyClass(IntIntPairWritable.class);
 	    job2.setOutputValueClass(FloatWritable.class);
-	    
-	    if(partitions == 0) partitions = Util.getTTNum(job2);
+
 	    job2.setNumMapTasks(partitions);
 	    job2.setNumReduceTasks(partitions);
 

@@ -34,13 +34,14 @@ public class KMeans extends Configured implements Tool {
 	private int iterations = 20;
 	
 	private void preprocess(String instate, String instatic) throws Exception {
-		String[] args = new String[4];
+		String[] args = new String[5];
 		args[0] = instate;
 		args[1] = instatic;
 		args[2] = "Text";
 		args[3] = String.valueOf(0);
+		args[4] = String.valueOf(partitions);
 		
-		PreProcess.main(args);
+		ToolRunner.run(new Configuration(), new PreProcess(), args);
 	}
 	
 	private void iterateKMeans(String input, String output) throws IOException{
@@ -56,12 +57,14 @@ public class KMeans extends Configured implements Tool {
 	    job.set(Common.SUBSTATE, Common.SUBSTATE_DIR);
 	    job.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 	            
+	    if(partitions == 0) partitions = Util.getTTNum(job);
+	    
 	    //set for iterative process
 	    job.setBoolean("mapred.job.iterative", true);  
 	    job.setBoolean("mapred.iterative.reducesync", true);
 	    job.setBoolean("mapred.iterative.mapsync", true);
 	    job.set("mapred.iterative.jointype", "one2all");
-	    job.setInt("mapred.iterative.ttnum", partitions);
+	    job.setInt("mapred.iterative.partitions", partitions);
 	    job.setInt("mapred.iterative.snapshot.interval", interval);
 	    job.setInt("mapred.iterative.stop.iteration", iterations); 	
 	    
@@ -77,7 +80,6 @@ public class KMeans extends Configured implements Tool {
 	    job.setOutputKeyClass(IntWritable.class);
 	    job.setOutputValueClass(Text.class);
   
-	    if(partitions == 0) partitions = Util.getTTNum(job);
 	    job.setNumMapTasks(partitions);
 	    job.setNumReduceTasks(partitions);
 

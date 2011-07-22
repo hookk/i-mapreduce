@@ -24,13 +24,14 @@ public class BSearch extends Configured implements Tool {
 	private int nodes = 1000000;
 	
 	private void preprocess(String instate, String instatic) throws Exception {
-		String[] args = new String[4];
+		String[] args = new String[5];
 		args[0] = instate;
 		args[1] = instatic;
 		args[2] = "Text";
 		args[3] = String.valueOf(nodes);
+		args[4] = String.valueOf(partitions);
 		
-		PreProcess.main(args);
+		ToolRunner.run(new Configuration(), new PreProcess(), args);
 	}
 	
 	private int bsearch(String input, String output) throws IOException{
@@ -45,11 +46,13 @@ public class BSearch extends Configured implements Tool {
 	    FileOutputFormat.setOutputPath(job, new Path(output));
 	    job.setOutputFormat(TextOutputFormat.class);
 	    
+	    if(partitions == 0) partitions = Util.getTTNum(job);
+	    
 	    //set for iterative process
 	    job.setBoolean("mapred.job.iterative", true);  
 	    job.setBoolean("mapred.iterative.reducesync", true);
 	    job.set("mapred.iterative.jointype", "one2one");
-	    job.setInt("mapred.iterative.ttnum", partitions);
+	    job.setInt("mapred.iterative.partitions", partitions);
 	    job.setInt("mapred.iterative.snapshot.interval", interval);
 	    job.setInt("mapred.iterative.stop.iteration", iterations); 
 	    
@@ -64,7 +67,6 @@ public class BSearch extends Configured implements Tool {
 	    job.setOutputValueClass(Text.class);
 	    job.setPartitionerClass(UniDistIntPartitioner.class);
 
-	    if(partitions == 0) partitions = Util.getTTNum(job);
 	    job.setNumMapTasks(partitions);
 	    job.setNumReduceTasks(partitions);
 	    

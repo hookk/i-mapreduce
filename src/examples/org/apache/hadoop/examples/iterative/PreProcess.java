@@ -23,8 +23,8 @@ public class PreProcess extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		if (args.length != 4) {
-		      System.err.println("Usage: preprocess <in_state> <in_static> <valClass> <pages>");
+		if (args.length != 5) {
+		      System.err.println("Usage: preprocess <in_state> <in_static> <valClass> <pages> <partitions>");
 		      System.exit(2);
 		}
 
@@ -32,6 +32,7 @@ public class PreProcess extends Configured implements Tool {
 		String inStatic = args[1];
 		String valClass = args[2];
 		int totalpages = Integer.parseInt(args[3]);
+		int partitions = Integer.parseInt(args[4]);
 		
 		//distribute graph job
 	    JobConf job = new JobConf(getConf());
@@ -53,13 +54,8 @@ public class PreProcess extends Configured implements Tool {
 	    job.setOutputValueClass(NullWritable.class);
 	    job.setPartitionerClass(UniDistIntPartitioner.class);
 	    
-	    JobClient jobclient = new JobClient(job);
-	    ClusterStatus status = jobclient.getClusterStatus();
-	    int ttnum = status.getTaskTrackers();
-	    job.setInt("mapred.iterative.ttnum", ttnum);
 	    job.set(Common.VALUE_CLASS, valClass);
-	   
-	    job.setNumReduceTasks(ttnum);
+	    job.setNumReduceTasks(partitions);
 	    
 	    JobClient.runJob(job);
 	    
@@ -85,9 +81,7 @@ public class PreProcess extends Configured implements Tool {
 	    job2.setOutputValueClass(NullWritable.class);
 	    job2.setPartitionerClass(UniDistIntPartitioner.class);
 	    
-	    job2.setInt("mapred.iterative.ttnum", ttnum);    
-	    
-	    job2.setNumReduceTasks(ttnum);
+	    job2.setNumReduceTasks(partitions);
 	    
 	    JobClient.runJob(job2);
 	    
