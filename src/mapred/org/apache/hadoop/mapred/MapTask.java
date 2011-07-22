@@ -260,7 +260,7 @@ public class MapTask extends Task implements InputCollector {
 	@Override
 	public int getNumberOfInputs() { 		
 		if(job != null && job.getBoolean("mapred.iterative.mapsync", false)){
-			return job.getInt("mapred.iterative.ttnum", 0);
+			return job.getInt("mapred.iterative.partitions", 0);
 		}else if(this.isIterative()){
 			return 1;
 		}else{
@@ -388,8 +388,6 @@ public class MapTask extends Task implements InputCollector {
 	      return;
 	    }
 	    
-	    
-	    
 		int numReduceTasks = conf.getNumReduceTasks();
 		LOG.info("numReduceTasks: " + numReduceTasks);
 
@@ -435,10 +433,6 @@ public class MapTask extends Task implements InputCollector {
 			this.buffer.setIterative(true);
 			
 			mapper = (IterativeMapper) ReflectionUtils.newInstance(job.getMapperClass(), job);
-
-			BufferExchangeSink sink = new BufferExchangeSink(job, this, this); 
-			sink.open();
-			LOG.info("iterate sink opened");
 			
 			//get the predecessor job's corresponding reduce id
 			while(this.predecessorReduceTaskId == null){
@@ -447,6 +441,10 @@ public class MapTask extends Task implements InputCollector {
 			}
 			LOG.info("local reduce task id extracted " + predecessorReduceTaskId);
 
+			BufferExchangeSink sink = new BufferExchangeSink(job, this, this); 
+			sink.open();
+			LOG.info("iterate sink opened");
+			
 			ReduceOutputFetcher rof = new ReduceOutputFetcher(umbilical, bufferUmbilical, sink, predecessorReduceTaskId);
 			rof.setDaemon(true);
 			rof.start();
@@ -525,12 +523,9 @@ public class MapTask extends Task implements InputCollector {
 				    maptime += System.currentTimeMillis() - mapbegin;
 					   
 				    if(staticData != null && joinType == StaticData.MatchType.ONE2ALL){
-				    	int count = 0;
 				    	while(staticData.next()){
-				    		count++;
 				    		mapper.map(null, null, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
 				    	}    	
-				    	//LOG.info("count is " + count);
 				    }
 				    
 				    this.mapper.iterate();
@@ -546,6 +541,7 @@ public class MapTask extends Task implements InputCollector {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}finally {
+					LOG.info("we can stop");
 					rof.interrupt();
 					rof = null;
 					sink.close();
@@ -553,8 +549,6 @@ public class MapTask extends Task implements InputCollector {
 			}
 
 			getProgress().complete();
-				
-			
 			mapper.close();
 		}
 		else{
@@ -714,8 +708,8 @@ public class MapTask extends Task implements InputCollector {
 		
 		boolean snapshotGen = false;
 		boolean stop = false;
-		//IFile.Writer<Object, Object> writer = null;
 		BufferedWriter writer = null;
+		int count = 0;
 		
 		if(iteration >= this.stopIteration){
 			stop = true;
@@ -731,7 +725,6 @@ public class MapTask extends Task implements InputCollector {
 			
 			FSDataOutputStream ostream = hdfs.create(new Path(snapshot), true);
 			writer = new BufferedWriter(new OutputStreamWriter(ostream));
-			//writer = new IFile.Writer<Object, Object>(conf, ostream, inputKeyClass, inputValClass, null, null);
 			snapshotIndex++;
 		}
 			
@@ -741,21 +734,23 @@ public class MapTask extends Task implements InputCollector {
 		DataInputBuffer value = new DataInputBuffer();
 		Object keyObject = null;
 		Object valObject = null;
+		
 		long mapbegin = System.currentTimeMillis();
 		long readbegin = System.currentTimeMillis();
+		
 		boolean mapsync = conf.getBoolean("mapred.iterative.mapsync", false);
-		int ttnum = job.getInt("mapred.iterative.ttnum", 0);
+		int partitions = job.getInt("mapred.iterative.partitions", 0);
 		while (reader.next(key, value)) {			
+			inputKeyDeserializer.open(key);
+			inputValDeserializer.open(value);
+			keyObject = inputKeyDeserializer.deserialize(keyObject);
+			valObject = inputValDeserializer.deserialize(valObject);
+			
 			if(!stop){
-				inputKeyDeserializer.open(key);
-				inputValDeserializer.open(value);
-				keyObject = inputKeyDeserializer.deserialize(keyObject);
-				valObject = inputValDeserializer.deserialize(valObject);
-				
 				//cache the input state data, use iterateOver to parse them together
 				if((joinType == StaticData.MatchType.ONE2ONE) && mapsync){	
 					
-					if(((IntWritable)keyObject).get()%ttnum == this.getTaskID().id){
+					if(((IntWritable)keyObject).get()%partitions == this.getTaskID().id){
 						cachewriter.append(keyObject, valObject);
 						continue;
 					}
@@ -777,22 +772,23 @@ public class MapTask extends Task implements InputCollector {
 				}else{
 					mapper.map(keyObject, valObject, null, null, this.buffer, reporter);
 				}
-			
 			}
-	
-			if(snapshotGen) writer.write(keyObject + "\t" + valObject + "\n");
+
+			if(snapshotGen){
+				writer.write(keyObject + "\t" + valObject + "\n");
+				count++;
+				if(count % 10000 == 0){
+					writer.flush();
+				}
+			}
 		}
+		
 		readtime += System.currentTimeMillis() - readbegin;
 		LOG.info("read use " + readtime + " ms.");
 		maptime += System.currentTimeMillis() - mapbegin;
+		LOG.info("iterative map use " + maptime + " ms.");
 		
-		if(stop){
-			writer.close();
-			LOG.info("iterative map use " + maptime + " ms.");
-			synchronized(this){
-				this.notifyAll();
-			}		
-		}else if(snapshotGen){
+		if(snapshotGen){
 			writer.close();
 		}
 			
@@ -801,7 +797,6 @@ public class MapTask extends Task implements InputCollector {
 
 	public void iterateOver() throws IOException {
 		LOG.info("iterate over data");
-
 		
 		if(joinType == StaticData.MatchType.ONE2ONE){
 			cachewriter.close();
@@ -848,8 +843,15 @@ public class MapTask extends Task implements InputCollector {
 	}
 	
 	public void stream() throws IOException {
-		this.mapper.iterate();
-		this.buffer.stream(iteration++, true);
+		LOG.info(iteration + " and stop at " + stopIteration);
+		if(iteration >= this.stopIteration){
+			synchronized(this){
+				this.notifyAll();
+			}		
+		}else{
+			this.mapper.iterate();
+			this.buffer.stream(iteration++, true);
+		}
 	}
 	
 	@Override

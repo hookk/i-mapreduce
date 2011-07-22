@@ -672,8 +672,7 @@ public class TaskTracker
                   TaskStatus.Phase.SHUFFLE) {
                 if (rjob.getMapFetchStatus() == null) {
                   //this is a new job; we start fetching its map events
-                  f = new FetchStatus(jobId, 
-                                      ((ReduceTask)task).getNumberOfInputs());
+                  f = new FetchStatus(jobId, ((ReduceTask)task).getNumberOfInputs());
                   rjob.setMapFetchStatus(f);
                 }
                 f = rjob.getMapFetchStatus();
@@ -702,20 +701,18 @@ public class TaskTracker
 					  Task task = tip.getTask();
 					  //LOG.info("task is " + task + " phase is " + task.getPhase());
 					  if (task.isMapTask() && task.isPipeline()) {
-						  	  //LOG.info("pipeline map task is " + task);
-							  PipelineMapTask pmt = (PipelineMapTask) task;
-							  TaskID reduceID = pmt.pipelineReduceTask(rjob.jobConf);
-							  if (rjob.getReduceFetchStatus() == null) {
-								  //this is a new job; we start fetching its reduce events
-								  f = new FetchStatus(reduceID.getJobID(), 1); 
-								  rjob.setReduceFetchStatus(f);
-							  }
-							  f = rjob.getReduceFetchStatus();
-							  fList.add(f);
-							  break; //no need to check any more tasks belonging to this
+					  	  //LOG.info("pipeline map task is " + task);
+						  PipelineMapTask pmt = (PipelineMapTask) task;
+						  TaskID reduceID = pmt.pipelineReduceTask(rjob.jobConf);
+						  if (rjob.getReduceFetchStatus() == null) {
+							  //this is a new job; we start fetching its reduce events
+							  f = new FetchStatus(reduceID.getJobID(), 1); 
+							  rjob.setReduceFetchStatus(f);
+						  }
+						  f = rjob.getReduceFetchStatus();
+						  fList.add(f);
+						  break; //no need to check any more tasks belonging to this
 					  } else if(task.isMapTask() && task.isIterative()) {
-						  //LOG.info("iterative map task is " + task);
-
 						  if(rjob.jobConf.getBoolean("mapred.iterative.mapsync", false)){
 				                if (rjob.getReduceFetchStatus() == null) {
 				                	MapTask pmt = (MapTask) task;

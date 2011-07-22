@@ -167,6 +167,8 @@ class JobInProgress {
   private JobID pipeline;
   private JobID dependent;
   
+  private int completedTasks = 0;
+  
   // Per-job counters
   public static enum Counter { 
     NUM_FAILED_MAPS, 
@@ -811,7 +813,6 @@ class JobInProgress {
     	LOG.info("Task " + taskid + " duration " + (status.getFinishTime() - status.getStartTime()) + " ms.");
     }
 
-    
     // If the TIP is already completed and the task reports as SUCCEEDED then 
     // mark the task as KILLED.
     // In case of task with no promotion the task tracker will mark the task 
@@ -833,7 +834,7 @@ class JobInProgress {
         status.setRunState(TaskStatus.State.KILLED);
       }
     }
-    
+
     boolean change = tip.updateStatus(status);
     if (change) {
       TaskStatus.State state = status.getRunState();
@@ -2136,6 +2137,7 @@ class JobInProgress {
       if ((finishedMapTasks + failedMapTIPs) == (numMapTasks)) {
         this.status.setMapProgress(1.0f);
       }
+      this.completedTasks++;
     } else {
       runningReduceTasks -= 1;
       if (oldNumAttempts > 1) {
@@ -2148,6 +2150,35 @@ class JobInProgress {
       if ((finishedReduceTasks + failedReduceTIPs) == (numReduceTasks)) {
         this.status.setReduceProgress(1.0f);
       }
+      this.completedTasks++;
+    }
+    
+    if(this.conf.getBoolean("mapred.job.iterative", false)){
+    	if(this.completedTasks >= 2 * this.conf.getInt("mapred.iterative.partitions", 0)){
+    	      // cleanup task has finished. Kill the extra cleanup tip
+    	      if (tip.isMapTask()) {
+    	        // kill the reduce tip
+    	        cleanup[1].kill();
+    	      } else {
+    	        cleanup[0].kill();
+    	      }
+    	      //
+    	      // The Job is done
+    	      // if the job is failed, then mark the job failed.
+    	      if (jobFailed) {
+    	        terminateJob(JobStatus.FAILED);
+    	      }
+    	      // if the job is killed, then mark the job killed.
+    	      if (jobKilled) {
+    	        terminateJob(JobStatus.KILLED);
+    	      }
+    	      else {
+    	        jobComplete(metrics);
+    	      }
+    	      // The job has been killed/failed/successful
+    	      // JobTracker should cleanup this task
+    	      jobtracker.markCompletedTaskAttempt(status.getTaskTracker(), taskid);
+    	}
     }
     
     return true;
@@ -2222,8 +2253,10 @@ class JobInProgress {
 
     if ((status.getRunState() == JobStatus.RUNNING) ||
          (status.getRunState() == JobStatus.PREP)) {
-      LOG.info("Killing job '" + this.status.getJobID() + "'");
-      if (jobTerminationState == JobStatus.FAILED) {
+      LOG.info("Killing job '" + this.status.getJobID() + "'" + jobTerminationState);
+      if (this.conf.getBoolean("mapred.job.iterative", false)){
+    	  LOG.info("kill iterative job");
+      } else if (jobTerminationState == JobStatus.FAILED) {
         if(jobFailed) {//reentrant
           return;
         }

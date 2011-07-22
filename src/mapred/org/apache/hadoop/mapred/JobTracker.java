@@ -2478,6 +2478,7 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     JobStatus newStatus = (JobStatus)job.getStatus().clone();
     if (prevStatus.getRunState() != newStatus.getRunState()
         && newStatus.getRunState() == JobStatus.KILLED) {
+    	LOG.info(prevStatus.getRunState() + ":" + newStatus.getRunState());
       JobStatusChangeEvent event = 
         new JobStatusChangeEvent(job, EventType.RUN_STATE_CHANGED, prevStatus, 
             newStatus);

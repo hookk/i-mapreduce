@@ -156,9 +156,9 @@ public class BufferExchangeSink<K extends Object, V extends Object> implements B
 	    
 	    this.cursor = new HashMap<TaskID, Position>();
 	    this.syncMapPos = new HashMap<Long, Integer>();
-	    this.syncMaps = conf.getInt("mapred.iterative.ttnum", 1);
+	    this.syncMaps = conf.getInt("mapred.iterative.partitions", 1);
 	    this.syncReducePos = new HashMap<Long, Integer>();
-	    this.syncReduces = conf.getInt("mapred.iterative.ttnum", 1);
+	    this.syncReduces = conf.getInt("mapred.iterative.partitions", 1);
 	    
 		this.executor = Executors.newFixedThreadPool(Math.min(maxConnections, Math.max(numInputs, 5)));
 		this.handlers = Collections.synchronizedSet(new HashSet<Handler>());
@@ -555,72 +555,6 @@ public class BufferExchangeSink<K extends Object, V extends Object> implements B
 					ostream.flush();
 				}
 			}
-			
-			/*
-			if(conf.getBoolean("mapred.iterative.reducesync", false)){
-				synchronized (task) {			
-					long pos = position.longValue() < 0 ? header.sequence() : position.longValue();
-					if (pos <= header.sequence()) {
-						WritableUtils.writeEnum(ostream, BufferExchange.Transfer.READY);
-						ostream.flush();
-						LOG.debug("Stream handler " + hashCode() + " ready to receive -- " + header);
-						if (collector.read(istream, header)) {
-							updateProgress(header);
-							
-							int recMaps = (syncPos.containsKey(position.longValue())) ? syncPos.get(position.longValue()) + 1 : 1;
-
-							LOG.info("recMaps: " + recMaps + " syncMaps: " + syncMaps);
-							if(recMaps >= syncMaps){
-								syncPos.remove(position.longValue());
-								
-								task.notifyAll();
-								
-							}else{
-								syncPos.put(position.longValue(), recMaps);
-							}
-							
-						}
-						position.set(header.sequence() + 1);
-						LOG.debug("Stream handler " + " done receiving up to position " + position.longValue());
-					}
-					else {
-						LOG.debug(this + " ignoring -- " + header);
-						WritableUtils.writeEnum(ostream, BufferExchange.Transfer.IGNORE);
-					}
-					// Indicate the next spill file that I expect.
-					pos = position.longValue();
-					LOG.debug("Updating source position to " + pos);
-					ostream.writeLong(pos);
-					ostream.flush();
-				}
-			}else{
-				// I'm the only one that should be updating this position.
-				synchronized (task) {			
-					long pos = position.longValue() < 0 ? header.sequence() : position.longValue(); 
-					if (pos <= header.sequence()) {
-						WritableUtils.writeEnum(ostream, BufferExchange.Transfer.READY);
-						ostream.flush();
-						LOG.debug("Stream handler " + hashCode() + " ready to receive -- " + header);
-						if (collector.read(istream, header)) {
-							updateProgress(header);
-							
-							task.notifyAll();			
-						}
-						position.set(header.sequence() + 1);
-						LOG.debug("Stream handler " + " done receiving up to position " + position.longValue());
-					}
-					else {
-						LOG.debug(this + " ignoring -- " + header);
-						WritableUtils.writeEnum(ostream, BufferExchange.Transfer.IGNORE);
-					}
-					// Indicate the next spill file that I expect.
-					pos = position.longValue();
-					LOG.debug("Updating source position to " + pos);
-					ostream.writeLong(pos);
-					ostream.flush();
-				}
-			}
-			*/
 		}		
 	}
 	
@@ -639,35 +573,6 @@ public class BufferExchangeSink<K extends Object, V extends Object> implements B
 				}
 				position = cursor.get(inputTaskID);
 			}
-
-			/*
-			synchronized (task) {
-				long pos = position.longValue() < 0 ? header.iteration() : position.longValue(); 
-				if (pos <= header.iteration()) {
-					WritableUtils.writeEnum(ostream, BufferExchange.Transfer.READY);
-					ostream.flush();
-					LOG.info("PKVBuffer handler " + hashCode() + " ready to receive -- " + header);
-					
-					if (collector.read(istream, header)) {
-						updateProgress(header);
-						synchronized (task) {
-							task.notifyAll();
-						}
-					}
-					position.set(header.iteration() + 1);
-					LOG.debug("Stream handler " + " done receiving up to position " + position.longValue());
-				}
-				else {
-					LOG.debug(this + " ignoring -- " + header);
-					WritableUtils.writeEnum(ostream, BufferExchange.Transfer.IGNORE);
-				}
-
-				pos = position.longValue();
-				LOG.debug("Updating source position to " + pos);
-				ostream.writeLong(pos);
-				ostream.flush();
-			}
-			*/
 			
 			synchronized (task) {			
 				long pos = position.longValue() < 0 ? header.iteration() : position.longValue(); 

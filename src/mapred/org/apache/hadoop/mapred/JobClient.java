@@ -1238,16 +1238,6 @@ public class JobClient extends Configured implements MRConstants, Tool  {
 			job.setInputKeyClass(keyClass);
 			job.setInputValueClass(valClass);
           LOG.info("iterative job");
-      }else{
-          boolean mapPipeline = job.getBoolean("mapred.map.pipeline", false);
-          boolean reducePipeline = job.getBoolean("mapred.reduce.pipeline", false);
-          boolean snapshotInput = job.getBoolean("mapred.job.input.snapshots", false);
-          float snapshotFreq = job.getFloat("mapred.snapshot.frequency", -1.0f);
-          LOG.info("Job configuration (HOP): \n" +
-        		   "     map pipeline    = " + mapPipeline + "\n" +
-        		   "     reduce pipeline = " + reducePipeline + "\n" +
-        		   "     snapshot input  = " + snapshotInput + "\n" +
-        		   "     snapshot freq   = " + snapshotFreq);
       }
       
       running = jc.submitJob(job, jobId);
