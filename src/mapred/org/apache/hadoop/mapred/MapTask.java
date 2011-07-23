@@ -219,7 +219,7 @@ public class MapTask extends Task implements InputCollector {
 	protected int counter = 0;
 	private int iteration = 0;
 	private int snapshotInterval = 0;
-	private int snapshotIndex = 0;
+	private int snapshotIndex = 1;
 	private int stopIteration = 0;
 	private StaticData.MatchType joinType = null;
 	private long maptime = 0;
@@ -717,10 +717,11 @@ public class MapTask extends Task implements InputCollector {
 		}
 		
 		if((iteration % snapshotInterval == 0) || stop){
+			//perform snapshot 
 			snapshotGen = true;
 			String outputDir = conf.get("mapred.output.dir");
 			int taskid = getTaskID().getTaskID().getId();
-			String snapshot = outputDir + "/" + taskid + "/snapshot-" + snapshotIndex;	
+			String snapshot = outputDir + "/snapshot" + snapshotIndex + "/part" + taskid;	
 			FileSystem hdfs = FileSystem.get(conf);
 			
 			FSDataOutputStream ostream = hdfs.create(new Path(snapshot), true);
