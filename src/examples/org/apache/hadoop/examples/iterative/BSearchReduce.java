@@ -24,22 +24,20 @@ public class BSearchReduce extends MapReduceBase implements
 		iteration = 0;
 	}
 	
-	//format node	f:len
+	//format node	f:len    -frontier
 	//       node	v:shortest_length
 	@Override
 	public void reduce(IntWritable key, Iterator<Text> values,
 			OutputCollector<IntWritable, Text> output, Reporter report)
 			throws IOException {
-		//System.out.println("input: " + key);
+
 		boolean fIsShorter = false;
 		int len = -1;
 		int min_len = Integer.MAX_VALUE;
 		
 		while(values.hasNext()){		
 			String value = values.next().toString();
-			
-			//System.out.println("input: " + key + " : " + value + " : " + min_len);
-			
+
 			int index = value.indexOf(":");
 			if(index == -1){
 				System.out.println("some thing wrong, no :");
@@ -48,7 +46,6 @@ public class BSearchReduce extends MapReduceBase implements
 			String indicator = value.substring(0, index);
 						
 			if(indicator.equals("f")){
-				//hasf = true;
 				len = Integer.parseInt(value.substring(index+1));
 				if(len<min_len){
 					min_len = len;
@@ -68,17 +65,12 @@ public class BSearchReduce extends MapReduceBase implements
 		 * expand frontier, and frontier's priority is inversely proportional
 		 * to the length, the shorter the length, the higher priority it has
 		 */
-		//if node distance is less than the stored distance, than expand it again
+		//if node distance is shorter than the stored distance, than expand it again
 		if(fIsShorter){
 			String out = "f:" + String.valueOf(min_len);
-			//for expr
-			//String out = "f:" + String.valueOf(min_len) + "," + links;
 			output.collect(new IntWritable(key.get()), new Text(out));
-			//System.out.println(key + " : " + out);
 		}else{
 			String out = "v:" + String.valueOf(min_len);
-			//for expr
-			//String out = "v:" + String.valueOf(min_len) + "," + links ;
 			output.collect(new IntWritable(key.get()), new Text(out));
 		}	
 	}
