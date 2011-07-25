@@ -527,11 +527,10 @@ public class MapTask extends Task implements InputCollector {
 				    		mapper.map(null, null, staticData.getKey(), staticData.getValue(), this.buffer, reporter);
 				    	}    	
 				    }
-				    
-				    this.mapper.iterate();
-					LOG.info("first round finished!");
-					this.buffer.stream(iteration++, true);
 			    }
+			    this.mapper.iterate();
+				LOG.info("first round finished!");
+				this.buffer.stream(iteration++, true);
 			}
 			
 			synchronized(this){

@@ -2476,8 +2476,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
     //   If the job is killed in the RUNNING state then cleanup tasks will be 
     //   launched and the updateTaskStatuses() will take care of it
     JobStatus newStatus = (JobStatus)job.getStatus().clone();
-    if (prevStatus.getRunState() != newStatus.getRunState()
-        && newStatus.getRunState() == JobStatus.KILLED) {
+    if ((prevStatus.getRunState() != newStatus.getRunState()
+        && newStatus.getRunState() == JobStatus.KILLED) 
+        || job.getJobConf().getBoolean("mapred.job.iterative", false)) {
     	LOG.info(prevStatus.getRunState() + ":" + newStatus.getRunState());
       JobStatusChangeEvent event = 
         new JobStatusChangeEvent(job, EventType.RUN_STATE_CHANGED, prevStatus, 
