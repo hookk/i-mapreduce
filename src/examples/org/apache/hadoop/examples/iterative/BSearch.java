@@ -59,8 +59,8 @@ public class BSearch extends Configured implements Tool {
 	    job.setJarByClass(BSearch.class);
 	    job.setMapperClass(BSearchMap.class);	
 	    job.setReducerClass(BSearchReduce.class);
-	    job.setDataKeyClass(IntWritable.class);
-	    job.setDataValClass(Text.class);	
+	    job.setDataKeyClass(IntWritable.class);			//static data key class
+	    job.setDataValClass(Text.class);				//static data value class
 	    job.setMapOutputKeyClass(IntWritable.class);
 	    job.setMapOutputValueClass(Text.class);
 	    job.setOutputKeyClass(IntWritable.class);

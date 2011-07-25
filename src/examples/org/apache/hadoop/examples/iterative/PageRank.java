@@ -65,8 +65,8 @@ public class PageRank extends Configured implements Tool {
 	    job.setJarByClass(PageRank.class);
 	    job.setMapperClass(PageRankMap.class);	
 	    job.setReducerClass(PageRankReduce.class);
-	    job.setDataKeyClass(IntWritable.class);
-	    job.setDataValClass(Text.class);			
+	    job.setDataKeyClass(IntWritable.class);				//static data key class
+	    job.setDataValClass(Text.class);					//static data value class
 	    job.setMapOutputKeyClass(IntWritable.class);
 	    job.setMapOutputValueClass(DoubleWritable.class);
 	    job.setOutputKeyClass(IntWritable.class);

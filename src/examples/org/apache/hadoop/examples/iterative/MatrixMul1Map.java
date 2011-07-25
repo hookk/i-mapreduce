@@ -34,7 +34,6 @@ public class MatrixMul1Map extends MapReduceBase implements
 		}
 
 		subNDir = job.get(Common.SUBSTATE);
-
 		taskid = Util.getTaskId(conf);
 	}
 	

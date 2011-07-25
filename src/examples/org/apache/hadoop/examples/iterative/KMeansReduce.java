@@ -34,14 +34,11 @@ public class KMeansReduce extends MapReduceBase implements
 			throws IOException {
 		//input key: cluster's mean  (whose mean has the nearest measure distance)
 		//input value: artid,avg,time artid,avg,time 
-		System.out.println(key.get());
 		
 		LastFMUser base = new LastFMUser(key.get(), "");
 		while(values.hasNext()) {		
 			String data = values.next().toString();
-			
-			//System.out.println(key.get() + "\t" + data);
-			
+
 			if(KMeans.COMBINE){
 				LastFMUser curr = new LastFMUser(key.get(), data, true);
 				base.addinred(curr);

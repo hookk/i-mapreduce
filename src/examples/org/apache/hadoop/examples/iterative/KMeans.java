@@ -10,6 +10,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.TextOutputFormat;
@@ -30,7 +31,6 @@ public class KMeans extends Configured implements Tool {
 	private int k;
 	private int threshold = 50;
 	private int partitions = 0;
-	private int interval = 1;
 	private int iterations = 20;
 	
 	private void preprocess(String instate, String instatic) throws Exception {
@@ -65,20 +65,23 @@ public class KMeans extends Configured implements Tool {
 	    job.setBoolean("mapred.iterative.mapsync", true);
 	    job.set("mapred.iterative.jointype", "one2all");
 	    job.setInt("mapred.iterative.partitions", partitions);
-	    job.setInt("mapred.iterative.snapshot.interval", interval);
+	    job.setInt("mapred.iterative.snapshot.interval", 10000);
 	    job.setInt("mapred.iterative.stop.iteration", iterations); 	
 	    
 	    FileInputFormat.addInputPath(job, new Path(input));		//no use
+	    FileOutputFormat.setOutputPath(job, new Path(output));	//no use
 	    
 	    job.setJarByClass(KMeans.class);
 	    job.setOutputFormat(TextOutputFormat.class);
 	    job.setMapperClass(KMeansMap.class);
 	    job.setReducerClass(KMeansReduce.class);
-	    job.setDataValClass(Text.class);			//set priority class
+	    job.setDataKeyClass(IntWritable.class);			//static data key class
+	    job.setDataValClass(Text.class);				//static data value class
 	    job.setMapOutputKeyClass(IntWritable.class);
 	    job.setMapOutputValueClass(Text.class);
 	    job.setOutputKeyClass(IntWritable.class);
 	    job.setOutputValueClass(Text.class);
+	    job.setPartitionerClass(UniDistIntPartitioner.class);
   
 	    job.setNumMapTasks(partitions);
 	    job.setNumReduceTasks(partitions);
@@ -88,7 +91,9 @@ public class KMeans extends Configured implements Tool {
 	
 	private void printUsage() {
 		System.out.println("kmeans [-p partitions] <InTemp> <inStateDir> <inStaticDir> <outDir> <k>");
-		System.out.println("\t-p # of parittions\n\t-i snapshot interval\n\t-I # of iterations\n\t -t stop threshold");
+		System.out.println(	"\t-p # of parittions\n" +
+							"\t-I # of iterations\n" +
+							"\t-t stop threshold");
 		ToolRunner.printGenericCommandUsage(System.out);
 	}
 	
@@ -104,8 +109,6 @@ public class KMeans extends Configured implements Tool {
 		      try {
 		    	  if ("-p".equals(args[i])) {
 			        	partitions = Integer.parseInt(args[++i]);
-		          } else if ("-i".equals(args[i])) {
-		        	interval = Integer.parseInt(args[++i]);
 		          } else if ("-I".equals(args[i])) {
 		        	iterations = Integer.parseInt(args[++i]);
 		          } else if ("-t".equals(args[i])) {

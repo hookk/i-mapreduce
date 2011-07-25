@@ -1,6 +1,7 @@
 package org.apache.hadoop.examples.iterative;
 
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -28,57 +29,17 @@ public class MatrixPower extends Configured implements Tool {
 
 	private int interval = 5;
 	private int partitions = 0;
+	private int power = 4;
 	
-	private void printUsage() {
-		System.out.println("matrixpower [-p partitions] <input M> <input N> <output C> <power>");
-		System.out.println("\t-p # of parittions\n\t-i snapshot interval");
-		ToolRunner.printGenericCommandUsage(System.out);
+	private void preprocess(String inM) throws Exception {
+		String[] args = new String[2];
+		args[0] = inM;
+		args[1] = String.valueOf(partitions);
+		
+		ToolRunner.run(new Configuration(), new PrepareNMF(), args);
 	}
 	
-	@Override
-	public int run(String[] args) throws Exception {
-		if (args.length != 4) {
-		      System.err.println("Usage: matrixpower <input M> <input N> <output C> <power>");
-		      System.exit(2);
-		}
-		if (args.length < 4) {
-			printUsage();
-			return -1;
-		}
-		
-		List<String> other_args = new ArrayList<String>();
-		for(int i=0; i < args.length; ++i) {
-		      try {
-		    	  if ("-p".equals(args[i])) {
-			        partitions = Integer.parseInt(args[++i]);
-		          } else if ("-i".equals(args[i])) {
-		        	interval = Integer.parseInt(args[++i]);
-		          } else {
-		    		  other_args.add(args[i]);
-		    	  }
-		      } catch (NumberFormatException except) {
-		        System.out.println("ERROR: Integer expected instead of " + args[i]);
-		        printUsage();
-		        return -1;
-		      } catch (ArrayIndexOutOfBoundsException except) {
-		        System.out.println("ERROR: Required parameter missing from " +
-		                           args[i-1]);
-		        printUsage();
-		        return -1;
-		      }
-		}
-		
-	    if (other_args.size() < 4) {
-		      System.out.println("ERROR: Wrong number of parameters: " +
-		                         other_args.size() + ".");
-		      printUsage(); return -1;
-		}
-	    
-		String inM = other_args.get(0);
-		String inN = other_args.get(1);
-		String out = other_args.get(2);
-		int power = Integer.parseInt(other_args.get(3));
-
+	private void matrixpower(String intemp, String inN, String outDir) throws IOException{
 		JobConf job1 = new JobConf(getConf(), MatrixPower.class);
 		job1.setJobName("phase 1");
 
@@ -128,11 +89,11 @@ public class MatrixPower extends Configured implements Tool {
 	    job1.setNumReduceTasks(partitions);
 
 	    /** phase 2 **/
-	    FileInputFormat.setInputPaths(job2, inM);
+	    FileInputFormat.setInputPaths(job2, intemp);
 		job2.setInputFormat(SequenceFileInputFormat.class);
-		FileOutputFormat.setOutputPath(job2, new Path(out));
+		FileOutputFormat.setOutputPath(job2, new Path(outDir));
 
-	    job2.set(Common.SUBSTATIC, inM);
+	    job2.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 
 	    job2.setMapperClass(MatrixMul2Map.class);
 	    job2.setReducerClass(MatrixMul2Reduce.class);
@@ -158,6 +119,66 @@ public class MatrixPower extends Configured implements Tool {
 		}
 		
 		FileSystem.get(job1).delete(tempDir, true);
+	}
+	
+	private void printUsage() {
+		System.out.println("matrixpower [-p partitions] <input> <input M> <input N> <output C> <power>");
+		System.out.println(	"\t-p # of parittions\n" +
+							"\t-i snapshot interval\n" +
+							"\t-I # of iterations\n");
+		ToolRunner.printGenericCommandUsage(System.out);
+	}
+	
+	@Override
+	public int run(String[] args) throws Exception {
+		if (args.length < 5) {
+			printUsage();
+			return -1;
+		}
+		
+		List<String> other_args = new ArrayList<String>();
+		for(int i=0; i < args.length; ++i) {
+		      try {
+		    	  if ("-p".equals(args[i])) {
+			        partitions = Integer.parseInt(args[++i]);
+		          } else if ("-i".equals(args[i])) {
+		        	interval = Integer.parseInt(args[++i]);
+		          } else {
+		    		  other_args.add(args[i]);
+		    	  } 		          if ("-p".equals(args[i])) {
+		        	partitions = Integer.parseInt(args[++i]);
+		          } else if ("-i".equals(args[i])) {
+		        	interval = Integer.parseInt(args[++i]);
+		          } else {
+		    		  other_args.add(args[i]);
+		    	  }
+		      } catch (NumberFormatException except) {
+		        System.out.println("ERROR: Integer expected instead of " + args[i]);
+		        printUsage();
+		        return -1;
+		      } catch (ArrayIndexOutOfBoundsException except) {
+		        System.out.println("ERROR: Required parameter missing from " +
+		                           args[i-1]);
+		        printUsage();
+		        return -1;
+		      }
+		}
+		
+	    if (other_args.size() < 5) {
+		      System.out.println("ERROR: Wrong number of parameters: " +
+		                         other_args.size() + ".");
+		      printUsage(); return -1;
+		}
+	    
+	    String in = other_args.get(0);
+		String inM = other_args.get(1);
+		String inN = other_args.get(2);
+		String out = other_args.get(3);
+		power = Integer.parseInt(other_args.get(4));
+
+	    preprocess(inM);
+	    matrixpower(in, inN, out);
+		
 		return 0;
 	}
 

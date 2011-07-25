@@ -10,7 +10,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.KeyValueTextInputFormat;
@@ -23,19 +22,17 @@ public class PrepareNMF extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 		
-		if (args.length != 3) {
-		      System.err.println("Usage: preparenmf <input M> <out> <partitions>");
+		if (args.length != 2) {
+		      System.err.println("Usage: preparenmf <input M> <partitions>");
 		      System.exit(2);
 		}
 		
 		String inM = args[0];
-		String out = args[1];
-		int partitions = Integer.parseInt(args[2]);
+		int partitions = Integer.parseInt(args[1]);
 		
 		JobConf job1 = new JobConf(getConf());
 	    FileInputFormat.addInputPath(job1, new Path(inM));
-	    FileOutputFormat.setOutputPath(job1, new Path(out));
-	    job1.set(Common.SUBSTATIC, out);
+	    job1.set(Common.SUBSTATIC, Common.SUBSTATIC_DIR);
 	     
 	    job1.setInputFormat(KeyValueTextInputFormat.class);
 	    job1.setOutputFormat(NullOutputFormat.class);

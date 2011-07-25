@@ -40,14 +40,14 @@ public class KMeansMap extends MapReduceBase implements
 	@Override
 	public void configure(JobConf job){
 		clusterDir = job.get(KMeans.KMEANS_CLUSTER_PATH);
-		partitions = Util.getTTNum(job);
+		partitions = job.getInt("mapred.iterative.partitions", 0);
 		threshold = job.getInt(KMeans.KMEANS_THRESHOLD, 0) / (partitions);
-		iteration = 0;
+		iteration = 1;
 		taskid = Util.getTaskId(job);
 		
 		try {
 			fs = FileSystem.get(job);
-			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + taskid);
+			Path clusterPath = new Path(clusterDir + "/snapshot" + iteration + "/part" + taskid);
 			if(fs.exists(clusterPath)) fs.delete(clusterPath, true);
 			FSDataOutputStream clusterOut = fs.create(clusterPath);
 			clusterWriter = new BufferedWriter(new OutputStreamWriter(clusterOut));
@@ -74,15 +74,17 @@ public class KMeansMap extends MapReduceBase implements
 		//output value: user-id data
 		
 		if(datakey == null){	
-			if(centers.size() == k) centers.clear();
+			synchronized(centers){
+				if(centers.size() == k) centers.clear();
+				
+				LastFMUser curr = new LastFMUser(key.get(), value.toString());
+				centers.add(curr);
+				LastFMUser outCenter = new LastFMUser(key.get(), "");
+				outCenters.put(key.get(), outCenter);
+				System.out.println("center size " + centers.size() + "\t" + curr);
 			
-			LastFMUser curr = new LastFMUser(key.get(), value.toString());
-			centers.add(curr);
-			LastFMUser outCenter = new LastFMUser(key.get(), "");
-			outCenters.put(key.get(), outCenter);
-			System.out.println("center size " + centers.size() + "\t" + curr);
-		
-			return;
+				return;
+			}
 		}
 			
 		if(outCollector == null) outCollector = output;
@@ -94,12 +96,14 @@ public class KMeansMap extends MapReduceBase implements
 		
 		double maxDist = -1;
 		LastFMUser maxMean = null;
-		for(LastFMUser mean : centers){
-			double dist;
-			dist = mean.ComplexDistance(curr);
-			if(dist > maxDist) {
-				maxDist = dist;
-				maxMean = mean;
+		synchronized(centers){
+			for(LastFMUser mean : centers){
+				double dist;
+				dist = mean.ComplexDistance(curr);
+				if(dist > maxDist) {
+					maxDist = dist;
+					maxMean = mean;
+				}
 			}
 		}
 		
