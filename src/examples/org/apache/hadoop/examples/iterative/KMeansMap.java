@@ -152,7 +152,7 @@ public class KMeansMap extends MapReduceBase implements
 		
 		try {
 			this.clusterWriter.close();
-			Path clusterPath = new Path(clusterDir + "/" + iteration + "/part" + taskid);
+			Path clusterPath = new Path(clusterDir + "/snapshot" + iteration + "/part" + taskid);
 			if(fs.exists(clusterPath)) fs.delete(clusterPath, true);
 			FSDataOutputStream clusterOut = fs.create(clusterPath);
 			clusterWriter = new BufferedWriter(new OutputStreamWriter(clusterOut));
