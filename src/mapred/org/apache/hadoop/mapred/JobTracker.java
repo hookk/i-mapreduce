@@ -63,10 +63,17 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.ipc.RPC.VersionMismatch;
+import org.apache.hadoop.mapred.IterationCompletionEvent;
+import org.apache.hadoop.mapred.JobID;
+import org.apache.hadoop.mapred.PrIterTaskScheduler;
+import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.JobHistory.Keys;
 import org.apache.hadoop.mapred.JobHistory.Listener;
 import org.apache.hadoop.mapred.JobHistory.Values;
 import org.apache.hadoop.mapred.JobStatusChangeEvent.EventType;
+import org.apache.hadoop.mapred.JobTracker.FailureCheckThread;
+import org.apache.hadoop.mapred.JobTracker.TaskMigrate;
+import org.apache.hadoop.mapred.JobTracker.TimeSeq;
 import org.apache.hadoop.mapred.monitor.MonitorServer;
 import org.apache.hadoop.net.DNSToSwitchMapping;
 import org.apache.hadoop.net.NetUtils;
@@ -3219,46 +3226,244 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
 	}
 
 	@Override
-	public void reportIterationCompletionEvent(IterationCompletionEvent event)
+	public synchronized void reportIterationCompletionEvent(IterationCompletionEvent event)
 			throws IOException {
-		int iterIndex = event.getIteration();
-		int reduceIndex = event.getTaskIndex();
-		JobID jobid = event.getJobID();
+		synchronized(taskReAssignMap){
+			int iterIndex = event.getIteration();
+			int taskid = event.gettaskID();
+			int checkpoint = event.getCheckPoint();
+			int snapshotCheckpoint = event.getSnapshotCheckpoint();
+			JobID jobid = event.getJob();
+	
+			//for fault tolerance
+			if(migrateCheckMap.get(jobid) == null){
+				long checkinterval = jobs.get(jobid).getJobConf().getLong("priter.task.restart.threshold", 50000);
+				FailureCheckThread migrateThread = new FailureCheckThread(jobid, checkinterval);
+				migrateCheckMap.put(jobid, migrateThread);
+				migrateThread.setDaemon(true);
+				migrateThread.start();
+			}
+			
+			if(this.recTimeSeq.get(jobid) == null){			
+				Map<Integer, List<TimeSeq>> jobiterComplete = new HashMap<Integer, List<TimeSeq>>();
+				this.recTimeSeq.put(jobid, jobiterComplete);
+
+				taskReAssignMap.clear();
+			}
+
+			if(this.recTimeSeq.get(jobid).get(iterIndex) == null){
+				List<TimeSeq> taskiterComplete = new ArrayList<TimeSeq>();
+				this.recTimeSeq.get(jobid).put(iterIndex, taskiterComplete);
+			}
+			
+			if(this.recTimeSeq.get(jobid).get(iterIndex).contains(taskid)){
+				throw new IOException("duplicated reduce task index " + taskid);
+			}
+			
+			long currtime = System.currentTimeMillis() - lastIterTime;
+			recTimeSeq.get(jobid).get(iterIndex).add(new TimeSeq(taskid, currtime));
+			
+			//for fault tolerance
+			synchronized(migrateCheckMap.get(jobid)){
+				migrateCheckMap.get(jobid).receviedOne = true;
+				migrateCheckMap.get(jobid).event = event;
+				migrateCheckMap.get(jobid).notifyAll();
+			}
+
+			LOG.info("get iteration " + iterIndex + " complete report for " + taskid + " it takes " + currtime);
+			
+			if(recTimeSeq.get(jobid).get(iterIndex).size() == totalReduces){
+				//perform load measurement
+				//simple version
+				List<TimeSeq> seq = recTimeSeq.get(jobid).get(iterIndex);
+
+				//if time dif larger than 10 seconds, migrate task
+				TimeSeq com1 = seq.get(seq.size()-1);
+				TimeSeq com2 = seq.get(0);
+				
+				if(recoverIterations == 0) recoverIterations = jobs.get(jobid).getJobConf().getInt("priter.checkpoint.frequency", 10);
+				//migrate task
+				if(!taskReAssign && (iterIndex >= recoverIterations) 
+						&& (com1.time - com2.time > jobs.get(jobid).getJobConf().getLong("priter.task.migration.threshold", 20000))
+						&& !SnapshotIndexChanged.get(jobid)){
+					String fromTT = ((PrIterTaskScheduler)taskScheduler).taskidTTMap.get(jobid).get(com1.taskid);
+					String toTT = ((PrIterTaskScheduler)taskScheduler).taskidTTMap.get(jobid).get(com2.taskid);
+					int migrateTaskId = com1.taskid;
+					
+					if(fromTT.equals(toTT)){
+						lastIterTime = System.currentTimeMillis();
+						recTimeSeq.get(jobid).remove(iterIndex);
+						return;
+					}
+					
+        			//find the task attempid basded on task id
+        			TaskAttemptID migratemAttemptid = null;
+        			TaskAttemptID migraterAttemptid = null;
+        			for(TaskAttemptID attemptid : taskidToTrackerMap.keySet()){
+        				if(attemptid.getTaskID().getId() == migrateTaskId){
+        					if(attemptid.isMap()){
+        						migratemAttemptid = attemptid;
+        					}else{
+        						migraterAttemptid = attemptid;
+        					}       					
+        				}
+        				
+        				//for recording the already notified task
+        				taskidSentMap.put(attemptid, false);
+        			}
+        			
+					migrateTasks.clear();
+					snapshotCompletionMap.get(jobid).clear();
+					
+        			if((migratemAttemptid != null) && (migraterAttemptid != null)){
+        				migrateTasks.put(new TaskMigrate(fromTT, toTT, migrateTaskId, migratemAttemptid, migraterAttemptid), 0);
+        			}else{
+        				throw new IOException("no matched attemptid");
+        			}
+					
+					
+					/*
+					synchronized(trackerToTaskMap){
+						for(String trackername : trackerToTaskMap.keySet()){
+							Set<TaskAttemptID> listold = trackerToTaskMap.get(trackername);
+							List<Integer> listnew = new ArrayList<Integer>();
+							
+							for(TaskAttemptID t : listold){
+								listnew.add(t.getTaskID().getId());
+							}
+							
+							if(trackername.equals(fromTT)){
+								listnew.remove(migrateTaskId);
+							}else if(trackername.equals(toTT)){
+								listnew.add(migrateTaskId);
+							}
+							
+							taskReAssignMap.put(trackername, listnew);				
+						}
+					}
+					*/
+					
+					this.recoverIterations = iterIndex + jobs.get(jobid).getJobConf().getInt("priter.checkpoint.frequency", 10);
+					this.taskReAssign = true;
+					this.checkpointIter = checkpoint;
+					this.checkpointSnapshot = snapshotCheckpoint;
+					
+					LOG.info("do task migration from " + fromTT + " to " + toTT + " for task " + com1.taskid + 
+							" rollback to checkpoint iteration " + checkpoint + 
+							" rollback to checkpoint snapshot " + snapshotCheckpoint);
+				}
+								
+				recTimeSeq.get(jobid).remove(iterIndex);
+				lastIterTime = System.currentTimeMillis();
+				SnapshotIndexChanged.put(jobid, false);
+				migrateCheckMap.get(jobid).newRound = true;
+			}
+		}
+	}
+
+	private class FailureCheckThread extends Thread {
 		
-		if(this.iterationCompletionMap.get(jobid) == null){
-			Map<Integer, ArrayList<Integer>> iterationComplete = new HashMap<Integer, ArrayList<Integer>>();
-			this.iterationCompletionMap.put(jobid, iterationComplete);
+		public IterationCompletionEvent event;
+		private JobID jobid;
+		private long interval;
+		public boolean receviedOne;
+		public boolean newRound;
+		
+		public FailureCheckThread(JobID jobid, long interval) throws IOException {
+			this.jobid = jobid;
+			this.interval = interval;
+			receviedOne = true;
+			newRound = true;
 		}
 		
-		if(this.iterationCompletionMap.get(jobid).containsKey(iterIndex)){
-			if(this.iterationCompletionMap.get(jobid).get(iterIndex).contains(reduceIndex)){
-				throw new IOException("duplicated reduce task index " + reduceIndex);
-			}
+		private synchronized void migrate(){
+			int partitions = jobs.get(jobid).getJobConf().getInt("priter.graph.partitions", -1);
+			List<TimeSeq> seq = recTimeSeq.get(jobid).get(event.getIteration());
+			Set<Integer> failTasks = new HashSet<Integer>();
 			
-			this.iterationCompletionMap.get(jobid).get(iterIndex).add(reduceIndex);
-			ArrayList<Integer> tasks = this.iterationCompletionMap.get(jobid).get(iterIndex);
-			
-			//LOG.info("interation index is " + iterIndex + " : task index is " + reduceIndex);
-			//LOG.info("total reduces is " + this.totalReduces);
-			//LOG.info("total received is " + tasks.size());
-
-			if(tasks.size() == this.totalReduces) {
-				//notify map to start
+			//some task failed
+			if(seq.size() < partitions){
+				for(int i=0; i<partitions; i++){
+					boolean match = false;
+					
+					for(TimeSeq s : seq){
+						if(s.taskid == i){
+							match = true;
+							break;
+						}
+					}
+					
+					if(!match){
+						failTasks.add(i);
+					}
+				}
 				
+				int index = 0;
+				for(int failtaskid : failTasks){
+					String fromTT = ((PrIterTaskScheduler)taskScheduler).taskidTTMap.get(jobid).get(failtaskid);
+					String toTT = ((PrIterTaskScheduler)taskScheduler).taskidTTMap.get(jobid).get(index);
+					int migrateTaskId = failtaskid;
+					
+        			//find the task attempid basded on task id
+        			TaskAttemptID migratemAttemptid = null;
+        			TaskAttemptID migraterAttemptid = null;
+        			for(TaskAttemptID attemptid : taskidToTrackerMap.keySet()){
+        				if(attemptid.getTaskID().getId() == migrateTaskId){
+        					if(attemptid.isMap()){
+        						migratemAttemptid = attemptid;
+        					}else{
+        						migraterAttemptid = attemptid;
+        					}       					
+        				}
+        				
+        				//for recording the already notified task
+        				taskidSentMap.put(attemptid, false);
+        			}
+        			
+					migrateTasks.clear();
+					snapshotCompletionMap.get(jobid).clear();
+					SnapshotIndexChanged.put(jobid, false);
+					
+        			if((migratemAttemptid != null) && (migraterAttemptid != null)){
+        				migrateTasks.put(new TaskMigrate(fromTT, toTT, migrateTaskId, migratemAttemptid, migraterAttemptid), 0);
+        			}else{
+        				try {
+							throw new IOException("no matched attemptid");
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+        			}
+        			
+        			LOG.info("task failure, do task migration from " + fromTT + " to " + toTT + " for task " + migrateTaskId);
+				}
+				taskReAssign = true;
+				checkpointIter = event.getCheckPoint();;
+				checkpointSnapshot = event.getSnapshotCheckpoint();
+				
+				index++;
 			}
-		}else{
-			ArrayList<Integer> tasks = new ArrayList<Integer>();
-			
-			//finish signal
-			if(iterIndex == -1) {
-				for(int i=0; i<1000; i++){
-					this.iterationCompletionMap.get(jobid).put(i, tasks);						
-					this.iterationCompletionMap.get(jobid).get(i).add(reduceIndex);
+		}
+		
+		public void run() {
+
+			while(true) {
+				synchronized(this){
+					try{
+						this.wait(interval);
+	
+						if(receviedOne) newRound = false;
+						
+						if(!newRound && !receviedOne){
+							migrate();
+						}
+						receviedOne = false;
+						
+					}catch (InterruptedException e) {
+						return;
+					}
 				}
 			}
-			
-			this.iterationCompletionMap.get(jobid).put(iterIndex, tasks);						
-			this.iterationCompletionMap.get(jobid).get(iterIndex).add(reduceIndex);
 		}
 	}
 }
