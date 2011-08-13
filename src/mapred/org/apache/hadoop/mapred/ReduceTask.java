@@ -35,6 +35,7 @@ import org.apache.hadoop.io.WritableFactories;
 import org.apache.hadoop.io.WritableFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.mapred.IterationCompletionEvent;
 import org.apache.hadoop.mapred.buffer.BufferUmbilicalProtocol;
 import org.apache.hadoop.mapred.buffer.OutputFile;
 import org.apache.hadoop.mapred.buffer.impl.JInputBuffer;
@@ -418,7 +419,18 @@ public class ReduceTask extends Task {
 				setProgressFlag();		
 				windowTimeStamp = System.currentTimeMillis();
 				reduce(job, reporter, inputCollector, umbilical, sink.getProgress(), null);
-				inputCollector.free(); // Free current data
+				inputCollector.free(); // Free current data	
+				
+				int id = this.getTaskID().getTaskID().getId();
+				IterationCompletionEvent event = new IterationCompletionEvent(iterindex, id, pkvBuffer.checkpointIter, pkvBuffer.checkpointSnapshot, getJobID());
+				try {
+					taskUmbilical.afterIterCommit(event);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				taskUmbilical.iterCommit();
+				
 				LOG.info("ReduceTask: " + getTaskID() + " has finished iteration " + iteration + " using " + 
 						 (System.currentTimeMillis() - windowTimeStamp) + "ms.");
 				reducetime += System.currentTimeMillis() - windowTimeStamp;
