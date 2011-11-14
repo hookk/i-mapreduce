@@ -20,18 +20,25 @@ public class KMeansReduce extends MapReduceBase implements
 	private int iteration;
 	private Date start;
 	private int threshold;
+	private int partitions;
+	private OutputCollector<IntWritable, Text> outCollector = null;
 	
 	@Override
 	public void configure(JobConf job){
 		iteration = 0;
 		start = new Date();
 		threshold = job.getInt(KMeans.KMEANS_THRESHOLD, 0);
+		partitions = job.getInt("mapred.iterative.partitions", 0);
 	}
 
 	@Override
 	public void reduce(IntWritable key, Iterator<Text> values,
 			OutputCollector<IntWritable, Text> output, Reporter report)
 			throws IOException {
+		if(output == null){
+			outCollector = output;
+		}
+		
 		//input key: cluster's mean  (whose mean has the nearest measure distance)
 		//input value: artid,avg,time artid,avg,time 
 		
@@ -55,6 +62,15 @@ public class KMeansReduce extends MapReduceBase implements
 	
 	@Override
 	public void iterate() {
+		try {
+			for(int i=0; i<partitions; i++){
+				outCollector.collect(new IntWritable(i), new Text("0,0,0"));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		iteration++;
 		Date current = new Date();
 		long passed = (current.getTime() - start.getTime()) / 1000;		
