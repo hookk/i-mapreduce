@@ -150,7 +150,7 @@ public class Manager implements BufferUmbilicalProtocol {
 						out.writeInt(handle.size());  // Tell remote end how many requests.
 						for (BufferRequest request : handle) {
 							BufferRequest.write(out, request); // Write the request to the socket.
-							LOG.debug("Sent request " + request + " to " + location);
+							LOG.info("Sent request " + request + " to " + location);
 						}
 						out.flush();
 						out.close();

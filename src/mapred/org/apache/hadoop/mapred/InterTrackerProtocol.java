@@ -126,6 +126,6 @@ interface InterTrackerProtocol extends VersionedProtocol {
    */
   public String getBuildVersion() throws IOException;
   
-  public void reportSnapshotCompletionEvent(SnapshotCompletionEvent event) throws IOException;
-  public void reportIterationCompletionEvent(IterationCompletionEvent event) throws IOException;
+  //public void reportSnapshotCompletionEvent(SnapshotCompletionEvent event) throws IOException;
+  //public void reportIterationCompletionEvent(IterationCompletionEvent event) throws IOException;
 }

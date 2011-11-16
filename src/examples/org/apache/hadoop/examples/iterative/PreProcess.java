@@ -18,13 +18,14 @@ import org.apache.hadoop.util.ToolRunner;
 
 
 
+
 public class PreProcess extends Configured implements Tool {
 	
 	@Override
 	public int run(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		if (args.length != 5) {
-		      System.err.println("Usage: preprocess <in_state> <in_static> <valClass> <pages> <partitions>");
+		if (args.length != 6) {
+		      System.err.println("Usage: preprocess <in_state> <in_static> <valClass> <pages> <partitions> <boradcast>");
 		      System.exit(2);
 		}
 
@@ -33,7 +34,9 @@ public class PreProcess extends Configured implements Tool {
 		String valClass = args[2];
 		int totalpages = Integer.parseInt(args[3]);
 		int partitions = Integer.parseInt(args[4]);
+		boolean broadcast = Boolean.parseBoolean(args[5]);
 		
+	
 		//distribute graph job
 	    JobConf job = new JobConf(getConf());
 	    String jobname = "distribute state data";
@@ -52,13 +55,14 @@ public class PreProcess extends Configured implements Tool {
 	    job.setMapOutputValueClass(Text.class);
 	    job.setOutputKeyClass(NullWritable.class);
 	    job.setOutputValueClass(NullWritable.class);
+	    
+
 	    job.setPartitionerClass(UniDistIntPartitioner.class);
 	    
 	    job.set(Common.VALUE_CLASS, valClass);
 	    job.setNumReduceTasks(partitions);
 	    
 	    JobClient.runJob(job);
-	    
 	    //################################################################
 	    
 	    JobConf job2 = new JobConf(getConf());

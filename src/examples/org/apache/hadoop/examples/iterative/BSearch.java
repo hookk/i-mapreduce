@@ -24,12 +24,13 @@ public class BSearch extends Configured implements Tool {
 	private int nodes = 1000000;
 	
 	private void preprocess(String instate, String instatic) throws Exception {
-		String[] args = new String[5];
+		String[] args = new String[6];
 		args[0] = instate;
 		args[1] = instatic;
 		args[2] = "Text";
 		args[3] = String.valueOf(nodes);
 		args[4] = String.valueOf(partitions);
+		args[5] = String.valueOf(false);
 		
 		ToolRunner.run(new Configuration(), new PreProcess(), args);
 	}

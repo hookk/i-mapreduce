@@ -30,12 +30,13 @@ public class PageRank extends Configured implements Tool {
 	public static final double RETAINFAC = 0.2;
 
 	private void preprocess(String instate, String instatic) throws Exception {
-		String[] args = new String[5];
+		String[] args = new String[6];
 		args[0] = instate;
 		args[1] = instatic;
 		args[2] = "DoubleWritable";
 		args[3] = String.valueOf(nodes);
 		args[4] = String.valueOf(partitions);
+		args[5] = String.valueOf(false);
 		
 		ToolRunner.run(new Configuration(), new PreProcess(), args);
 	}

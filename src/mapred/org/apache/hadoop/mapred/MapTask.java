@@ -73,6 +73,7 @@ public class MapTask extends Task implements InputCollector {
 		private BufferUmbilicalProtocol bufferUmbilical;
 		
 		private BufferExchangeSink sink;
+		public boolean canstart = false;
 		
 		public ReduceOutputFetcher(TaskUmbilicalProtocol trackerUmbilical, 
 				BufferUmbilicalProtocol bufferUmbilical, 
@@ -140,6 +141,7 @@ public class MapTask extends Task implements InputCollector {
 										if (reduceTasks.size() == getNumberOfInputs()) {
 											LOG.info("ReduceTask " + getTaskID() + " has requested all reduce buffers. " + 
 													reduceTasks.size() + " reduce buffers.");
+											canstart = true;
 										}
 									} catch (IOException e) {
 										LOG.warn("BufferUmbilical problem in taking request " + request + ". " + e);
@@ -443,6 +445,11 @@ public class MapTask extends Task implements InputCollector {
 			ReduceOutputFetcher rof = new ReduceOutputFetcher(umbilical, bufferUmbilical, sink, predecessorReduceTaskId);
 			rof.setDaemon(true);
 			rof.start();
+			
+			try{
+				Thread.sleep(10000);
+			}catch (Exception e){
+			}
 					
 			Path[] stateDataPaths = mapper.initStateData();
 			Path staticDataPath = mapper.initStaticData();

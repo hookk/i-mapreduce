@@ -420,7 +420,7 @@ public class ReduceTask extends Task {
 				windowTimeStamp = System.currentTimeMillis();
 				reduce(job, reporter, inputCollector, umbilical, sink.getProgress(), null);
 				inputCollector.free(); // Free current data	
-				
+				/*
 				int id = this.getTaskID().getTaskID().getId();
 				IterationCompletionEvent event = new IterationCompletionEvent(iterindex, id, pkvBuffer.checkpointIter, pkvBuffer.checkpointSnapshot, getJobID());
 				try {
@@ -429,8 +429,8 @@ public class ReduceTask extends Task {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				taskUmbilical.iterCommit();
-				
+				//taskUmbilical.iterCommit();
+				*/
 				LOG.info("ReduceTask: " + getTaskID() + " has finished iteration " + iteration + " using " + 
 						 (System.currentTimeMillis() - windowTimeStamp) + "ms.");
 				reducetime += System.currentTimeMillis() - windowTimeStamp;

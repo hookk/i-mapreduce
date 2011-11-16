@@ -3344,12 +3344,12 @@ public class TaskTracker
 	@Override
 	public void snapshotCommit(SnapshotCompletionEvent event) throws IOException {
 		LOG.info("get snapshot event " + event);
-		this.jobClient.reportSnapshotCompletionEvent(event);
+		//this.jobClient.reportSnapshotCompletionEvent(event);
 	} 
 	
 	@Override
 	public void iterCommit(IterationCompletionEvent event) throws IOException {
 		LOG.info("get iteration completion event " + event);
-		this.jobClient.reportIterationCompletionEvent(event);
+		//this.jobClient.reportIterationCompletionEvent(event);
 	} 
 }

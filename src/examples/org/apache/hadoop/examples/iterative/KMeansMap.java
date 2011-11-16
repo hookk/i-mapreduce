@@ -72,7 +72,7 @@ public class KMeansMap extends MapReduceBase implements
 		//input data: user artist-id,plays tuples
 		//output key: cluster id  (whose mean has the nearest measure distance)
 		//output value: user-id data
-		
+
 		if(datakey == null){	
 			synchronized(centers){
 				if(centers.size() == k) centers.clear();
@@ -100,6 +100,8 @@ public class KMeansMap extends MapReduceBase implements
 			for(LastFMUser mean : centers){
 				double dist;
 				dist = mean.ComplexDistance(curr);
+				//System.out.println(curr + " distance to " + mean + " is " + dist);
+				//System.out.println(dist + " comp " + maxDist);
 				if(dist > maxDist) {
 					maxDist = dist;
 					maxMean = mean;
@@ -111,6 +113,7 @@ public class KMeansMap extends MapReduceBase implements
 			outCenters.get(maxMean.userID).add(curr);
 		}else{
 			output.collect(new IntWritable(maxMean.userID), new Text(curr.artistsString()));
+			//System.out.println(maxMean.userID + "\t" + curr.artistsString());
 		}
 		
 		clusterWriter.write(String.valueOf(maxMean.userID) + "\t" + curr.userID + "\n");

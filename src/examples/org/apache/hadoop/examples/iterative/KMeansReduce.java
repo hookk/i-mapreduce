@@ -57,20 +57,24 @@ public class KMeansReduce extends MapReduceBase implements
 		}
 		
 		output.collect(key, new Text(base.getArtists(threshold)));
-		System.out.println(key + "\t" + base.getArtists(threshold));
+		System.out.println(key + ":" + threshold + "\t" + base.getArtists(threshold));
 	}
 	
 	@Override
 	public void iterate() {
+		/*
 		try {
-			for(int i=0; i<partitions; i++){
-				outCollector.collect(new IntWritable(i), new Text("0,0,0"));
+			if(outCollector != null){
+				for(int i=0; i<partitions; i++){
+					outCollector.collect(new IntWritable(i), new Text("0,0,0"));
+					System.out.println(i + "\t" + "0,0,0");
+				}
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+		*/
 		iteration++;
 		Date current = new Date();
 		long passed = (current.getTime() - start.getTime()) / 1000;		
