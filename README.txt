@@ -1,49 +1,30 @@
-HOP
-===========
 
-The Hadoop Online Prototype (HOP) is a modified version of Hadoop
-that supports pipelining between tasks and between jobs. For more
-information on HOP, please see our website:
+a modified MapReduce Framework for iterative processing
 
-   http://code.google.com/p/hop/
+The iMapReduce project started at University of Massachusetts Amherst in 2010. iMapReduce is a modified Hadoop MapReduce Framework for iterative processing. iMapReduce allows users to specify the iterative computation with the separated map and reduce functions, and provides support of automatic iterative processing. More importantly, it improves performance by
 
-To enable HOP-specific functionality (e.g. pipelining), see the
-configuration page:
+reducing the overhead of creating jobs repeatedly
+eliminating the shuffling of static data
+allowing asynchronous execution of map tasks
+Even though it is not true that every iterative algorithm can benefit from all these three features, most of graph-based iterative algorithms are quite suitable in iMapReduce, e.g. shortest path and pagerank. The other iterative algorithms, e.g. NMF, kmeans, at least, can benefit from the first feature. So we can see different performance improvement for different applications.
 
-   http://code.google.com/p/hop/wiki/HopConfiguration
+For more information, please take a look at our iMapReduce paper in DataCloud'2011.
 
-This version of HOP is based on Hadoop 0.19.2; the Hadoop README.txt
-follows.
-===========
+This project is a prototype implementation of the iMapReduce idea. The prototype isbased on Hadoop 0.19.2 and HOP. It is better used for research perspective, but we don't recommend to use it in production. Of course, we welcome any feedback on iMapReduce.
 
-For the latest information about Hadoop, please visit our website at:
+Quick Start
 
-   http://hadoop.apache.org/core/
+Of course, download iMapReduce hadoop-imapreduce-0.1.tar.gz.
+To deploy a cluster environment, you can refer to Hadoop Quick Start instructions, if you've never used Hadoop.
+Modify configuration files in conf/ directory according to your cluster environment, hadoop-site.xml (e.g., jobtracker, namenode, ...), slaves, masters, hadoop-env.sh.
+The algorithm samples are provided in algorithms directory, you can simply execute shell scripts to run the algorithms including SSSP, PageRank, KMeans, Power of Matrix.
+The real data involved in these applications could be found at http://rio.ecs.umass.edu/~yzhang/data/
+For more details, you can read our Wikipage.
 
-and our wiki, at:
+An brief introduction of iMapReduce
 
-   http://wiki.apache.org/hadoop/
+APIs and system parameters
 
-This distribution includes cryptographic software.  The country in 
-which you currently reside may have restrictions on the import, 
-possession, use, and/or re-export to another country, of 
-encryption software.  BEFORE using any encryption software, please 
-check your country's laws, regulations and policies concerning the
-import, possession, or use, and re-export of encryption software, to 
-see if this is permitted.  See <http://www.wassenaar.org/> for more
-information.
+PageRank implementation in iMapReduce
 
-The U.S. Government Department of Commerce, Bureau of Industry and
-Security (BIS), has classified this software as Export Commodity 
-Control Number (ECCN) 5D002.C.1, which includes information security
-software using or performing cryptographic functions with asymmetric
-algorithms.  The form and manner of this Apache Software Foundation
-distribution makes it eligible for export under the License Exception
-ENC Technology Software Unrestricted (TSU) exception (see the BIS 
-Export Administration Regulations, Section 740.13) for both object 
-code and source code.
-
-The following provides more details on the included cryptographic
-software:
-  Hadoop Core uses the SSL libraries from the Jetty project written 
-by mortbay.org.
+An overview of the iMapReduce implementation
