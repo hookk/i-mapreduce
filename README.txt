@@ -5,7 +5,15 @@ The iMapReduce project started at University of Massachusetts Amherst in 2010. i
 
 For more information, please take a look at our iMapReduce paper in DataCloud'2011.
 
-This project is a prototype implementation of the iMapReduce idea. The prototype isbased on Hadoop 0.19.2 and HOP. It is better used for research perspective, but we don't recommend to use it in production. Of course, we welcome any feedback on iMapReduce.
+* Yanfeng Zhang, Qixin Gao, Lixin Gao, Cuirong Wang. iMapReduce: A Distributed Computing Framework for Iterative Computation [C]. Proceedings of IEEE International Symposium on Parallel & Distributed Processing, Workshops and Phd Forum 2011, Anchorage, USA, 2011, pp. 1112—1121.
+
+Later, we have extended iMapReduce and developed i2MapReduce, which supports fine-grain incremental processing (kv-pair level rather than task level in Incoop), general-purpose iterative processing (that extends the original iMapReduce and supports more iterative algorithms), and incremental processing for iterative computation.
+
+For more infomation, please refer to our i2MapReduce paper in TKDE 2015.
+
+* Yanfeng Zhang, Shimin Chen, Qiang Wang, Ge Yu. i2MapReduce: Incremental MapReduce for Mining Evolving Big Data [J]. IEEE Transactions on Knowledge and Data Engineering (TKDE), 27(7), July, 2015, pp. 1906-1919. 
+
+This project is a prototype implementation of the iMapReduce idea. The prototype is based on Hadoop 1.0.3. It is better used for research perspective, but we don't recommend to use it in production. Of course, we welcome any feedback on i2MapReduce.
 
 Quick Start
 
@@ -14,6 +22,7 @@ To deploy a cluster environment, you can refer to Hadoop Quick Start instruction
 Modify configuration files in conf/ directory according to your cluster environment, hadoop-site.xml (e.g., jobtracker, namenode, ...), slaves, masters, hadoop-env.sh.
 The algorithm samples are provided in algorithms directory, you can simply execute shell scripts to run the algorithms including SSSP, PageRank, KMeans, Power of Matrix.
 The real data involved in these applications could be found at http://rio.ecs.umass.edu/~yzhang/data/
+
 For more details, you can read our Wikipage.
 
 An brief introduction of iMapReduce
