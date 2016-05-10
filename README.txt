@@ -14,21 +14,3 @@ For more infomation, please refer to our i2MapReduce paper in TKDE 2015.
 * Yanfeng Zhang, Shimin Chen, Qiang Wang, Ge Yu. i2MapReduce: Incremental MapReduce for Mining Evolving Big Data [J]. IEEE Transactions on Knowledge and Data Engineering (TKDE), 27(7), July, 2015, pp. 1906-1919. 
 
 This project is a prototype implementation of the iMapReduce idea. The prototype is based on Hadoop 1.0.3. It is better used for research perspective, but we don't recommend to use it in production. Of course, we welcome any feedback on i2MapReduce.
-
-Quick Start
-
-Of course, download iMapReduce hadoop-imapreduce-0.1.tar.gz.
-To deploy a cluster environment, you can refer to Hadoop Quick Start instructions, if you've never used Hadoop.
-Modify configuration files in conf/ directory according to your cluster environment, hadoop-site.xml (e.g., jobtracker, namenode, ...), slaves, masters, hadoop-env.sh.
-The algorithm samples are provided in algorithms directory, you can simply execute shell scripts to run the algorithms including SSSP, PageRank, KMeans, Power of Matrix.
-The real data involved in these applications could be found at http://rio.ecs.umass.edu/~yzhang/data/
-
-For more details, you can read our Wikipage.
-
-An brief introduction of iMapReduce
-
-APIs and system parameters
-
-PageRank implementation in iMapReduce
-
-An overview of the iMapReduce implementation
